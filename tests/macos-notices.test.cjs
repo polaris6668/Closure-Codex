@@ -3,6 +3,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 const { test } = require('node:test')
+const { EventEmitter } = require('node:events')
 const { setTimeout: delay } = require('node:timers/promises')
 const { createActivity } = require('../outputs/closure-companion/activity.cjs')
 
@@ -37,4 +38,37 @@ test('desktop delivers structured questions, answers, failed tools, and usage in
   assert.equal(snapshot.desktopEvents[3].name, 'web_run')
   assert.equal(snapshot.closureCompanion.quota[0].remaining, 91)
   assert.deepEqual(snapshot.closureCompanion.tokenUsage, { total: 19, turn: 8 })
+})
+
+test('desktop recovers missed file events without replaying completed turns', async (t) => {
+  const watcher = new EventEmitter()
+  watcher.close = () => {}
+  t.mock.method(fs, 'watch', () => watcher)
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'closure-scan-'))
+  const oldFolder = path.join(root, '2021', '01', '01')
+  fs.mkdirSync(oldFolder, { recursive: true })
+  const file = path.join(oldFolder, 'rollout-resumed.jsonl')
+  const record = (type, payload, at = Date.now()) => JSON.stringify({ timestamp: new Date(at).toISOString(), type, payload }) + '\n'
+  const meta = record('session_meta', { originator: 'Codex Desktop', source: 'vscode' })
+  const turn = (type, turn_id, at) => record('event_msg', { type, turn_id }, at)
+  const past = Date.now() - 1000
+  fs.writeFileSync(file, meta + turn('task_started', 'old', past) + turn('task_complete', 'old', past) + turn('task_started', 'current', past))
+  const activity = createActivity(true, root, { desktopOnly: true })
+  t.after(() => {
+    activity.stop()
+    fs.rmSync(root, { recursive: true, force: true })
+  })
+  assert.equal(activity.snapshot().work.active, true)
+  assert.deepEqual(activity.snapshot().turnEnds, [])
+  fs.appendFileSync(file, turn('task_complete', 'current'))
+  const freshFolder = path.join(root, '2026', '01', '01')
+  fs.mkdirSync(freshFolder, { recursive: true })
+  fs.writeFileSync(path.join(freshFolder, 'rollout-new.jsonl'), meta + turn('task_started', 'new') + turn('task_complete', 'new'))
+
+  for (let round = 0; round < 80 && activity.snapshot().turnEnds.length < 2; round++) await delay(50)
+  const expected = [{ seq: 1, kind: 'completed' }, { seq: 2, kind: 'completed' }]
+  assert.deepEqual(activity.snapshot().turnEnds, expected)
+  assert.equal(activity.snapshot().work.active, false)
+  await delay(1700)
+  assert.deepEqual(activity.snapshot().turnEnds, expected)
 })

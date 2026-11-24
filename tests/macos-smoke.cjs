@@ -3,6 +3,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
+const { EventEmitter } = require('node:events')
 const { setTimeout: delay } = require('node:timers/promises')
 const { app, BrowserWindow } = require('electron')
 
@@ -15,6 +16,15 @@ const folder = path.join(fixture, 'sessions', ...date)
 const olderFolder = path.join(fixture, 'sessions', '2021', '01', '01')
 fs.mkdirSync(folder, { recursive: true })
 fs.mkdirSync(olderFolder, { recursive: true })
+if (process.env.CLOSURE_TEST_MISSED_WATCH === '1') {
+  const watch = fs.watch.bind(fs)
+  fs.watch = (directory, ...args) => {
+    if (directory !== path.join(fixture, 'sessions')) return watch(directory, ...args)
+    const silent = new EventEmitter()
+    silent.close = () => {}
+    return silent
+  }
+}
 
 function record(payload, type = 'event_msg') {
   return JSON.stringify({ timestamp: new Date().toISOString(), type, payload }) + '\n'

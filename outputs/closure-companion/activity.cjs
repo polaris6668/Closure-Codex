@@ -5,6 +5,7 @@ const { summarizeError, summarizeToolError } = require('./error-summary.cjs')
 const tailLimit = 256 * 1024
 const activeTimeout = 20 * 60 * 1000
 const quotaTimeout = 30 * 60 * 1000
+const desktopScanInterval = 1500
 const talkHold = 2200 // Keep a short response visible across a one-second renderer poll.
 const rolloutName = /^rollout-[\w-]+\.jsonl$/i
 const publicToolNames = new Set(['web.search', 'web_run', 'search_service.web_run', 'apply_patch', 'exec_command'])
@@ -28,6 +29,7 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
   const startedAt = Date.now()
   let rateLimits = { at: 0, windows: [] }
   let watcher
+  let desktopScanTimer
 
   function desktopEvent(scene, detail = {}) {
     if (!desktopOnly) return
@@ -236,15 +238,16 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
         activityAt: 0, totalTokens: null, turnStartTokens: null, turnTokens: null,
         inputCalls: new Map(), awaitingAnswers: 0,
       }
+      if (desktopOnly) {
+        session.updated = mtimeMs
+        session.observedSize = size
+        files.set(filename, session)
+        if (size !== session.offset) readDesktopLines(fd, size, session, notifyExisting && !truncated)
+        return
+      }
       if (size === session.offset) return
       // A new rollout may finish before its first watch callback.
       const notify = notifyExisting && !truncated && (Boolean(prior) || birthtimeMs >= startedAt)
-      if (desktopOnly) {
-        session.updated = mtimeMs
-        files.set(filename, session)
-        readDesktopLines(fd, size, session, notifyExisting && !truncated)
-        return
-      }
       const start = Math.max(session.offset, size - tailLimit)
       if ((!prior || truncated) && start > 0) {
         const head = Buffer.alloc(Math.min(tailLimit, size))
@@ -281,24 +284,49 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
     }, 180))
   }
 
+  function scanDesktopRollouts(notify = true) {
+    let entries
+    try { entries = fs.readdirSync(sessionsRoot, { recursive: true }) } catch { return }
+    const cutoff = notify ? startedAt : startedAt - quotaTimeout
+    for (const relative of entries) {
+      if (!rolloutName.test(path.basename(relative))) continue
+      const filename = path.join(sessionsRoot, relative)
+      let stat
+      try { stat = fs.statSync(filename, { throwIfNoEntry: false }) } catch { continue }
+      if (!stat?.isFile()) continue
+      const session = files.get(filename)
+      if (session ? session.updated === stat.mtimeMs && session.observedSize === stat.size : stat.mtimeMs < cutoff) continue
+      readTail(filename, notify)
+    }
+  }
+
   if (enabled && fs.existsSync(sessionsRoot)) {
     try {
       watcher = fs.watch(sessionsRoot, { recursive: true }, (_event, filename) => queue(filename))
       watcher.on('error', () => { watcher?.close(); watcher = undefined })
-      for (const offset of [0, 1]) {
-        const date = new Date()
-        date.setDate(date.getDate() - offset)
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        const folder = path.join(sessionsRoot, String(date.getFullYear()), month, day)
-        if (!fs.existsSync(folder)) continue
-        for (const name of fs.readdirSync(folder)) {
-          if (!rolloutName.test(name)) continue
-          const filename = path.join(folder, name)
-          if (Date.now() - fs.statSync(filename, { throwIfNoEntry: false })?.mtimeMs < quotaTimeout) readTail(filename, false)
+      if (!desktopOnly) {
+        for (const offset of [0, 1]) {
+          const date = new Date()
+          date.setDate(date.getDate() - offset)
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          const folder = path.join(sessionsRoot, String(date.getFullYear()), month, day)
+          if (!fs.existsSync(folder)) continue
+          for (const name of fs.readdirSync(folder)) {
+            if (!rolloutName.test(name)) continue
+            const filename = path.join(folder, name)
+            if (Date.now() - fs.statSync(filename, { throwIfNoEntry: false })?.mtimeMs < quotaTimeout) readTail(filename, false)
+          }
         }
       }
     } catch { watcher?.close(); watcher = undefined }
+  }
+
+  if (enabled && desktopOnly) {
+    // A recursive FSEvents watcher can miss changes to existing rollouts on macOS.
+    scanDesktopRollouts(false)
+    desktopScanTimer = setInterval(scanDesktopRollouts, desktopScanInterval)
+    desktopScanTimer.unref()
   }
 
   return {
@@ -313,14 +341,15 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
         if (session.activityAt && newer(session, latest)) latest = session
         if (session.turn && now - session.activityAt <= activeTimeout && newer(session, active)) active = session
       }
-      for (const [filename, session] of files) {
-        if (desktopOnly && session.desktop && !session.subagent) continue
-        if (session !== latest && now - session.updated > activeTimeout) files.delete(filename)
+      if (!desktopOnly) {
+        for (const [filename, session] of files) {
+          if (session !== latest && now - session.updated > activeTimeout) files.delete(filename)
+        }
       }
       const selected = active || latest
       return {
         closureCompanion: {
-          following: Boolean(watcher), completed: now - turnEnd.at < 10000 && turnEnd.kind === 'completed',
+          following: Boolean(watcher || desktopScanTimer), completed: now - turnEnd.at < 10000 && turnEnd.kind === 'completed',
           quota: now - rateLimits.at < quotaTimeout ? rateLimits.windows.filter((entry) => entry.resetsAt > now) : [],
           tokenUsage: selected?.totalTokens == null ? null : {
             total: selected.totalTokens, turn: selected.turnTokens,
@@ -337,6 +366,7 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
     },
     stop() {
       watcher?.close()
+      clearInterval(desktopScanTimer)
       for (const timer of pending.values()) clearTimeout(timer)
       pending.clear()
     },
