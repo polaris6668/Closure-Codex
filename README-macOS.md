@@ -1,6 +1,21 @@
 # 可露希尔桌宠 · macOS
 
-这个本地移植基于 Closure-Codex v0.6.0，适用于 Apple Silicon Mac。双击 `dist/Closure Companion.app` 启动。设置及角色位置保存在 `~/Library/Application Support/Closure Companion`。
+这是基于 [OndoP3901/Closure-Codex v0.6.0](https://github.com/OndoP3901/Closure-Codex/tree/v0.6.0) 的非官方移植，适用于 Apple Silicon Mac。桌宠可独立使用，任务语音、窗口跟随与 CRT 等功能需要安装 Codex 桌面客户端。
+
+[macOS 更新日志](CHANGELOG-macOS.md) · [上游 Windows 版说明](README.md#上游-windows-版说明)
+
+## 安装与启动
+
+准备 Node.js 和 Xcode 命令行工具，然后在终端执行以下命令。首次构建会下载并校验官方 Electron ARM64 运行时。
+
+```sh
+git clone --branch codex/macos-port --single-branch https://github.com/polaris6668/Closure-Codex.git
+cd Closure-Codex
+bash Build-macOS.sh
+open 'dist/Closure Companion.app'
+```
+
+如果已有源码，在仓库目录运行 `bash Build-macOS.sh` 即可。也可以把生成的 `.app` 拖到 Finder 的「应用程序」里。设置和角色位置保存在 `~/Library/Application Support/Closure Companion`。
 
 ## 右键设置
 
@@ -19,15 +34,8 @@
 - **配色** ｜ 点「Codex 配色与 CRT → 复制深色配色」，再进入 Codex 的「设置 → 外观 → 深色主题」，点击「导入」。
 - **页面内 CRT** ｜ 保存手上的工作，按 `⌘Q` 退出 Codex，然后在桌宠设置选择「启动 CRT 版 Codex」。进入 Codex 主界面后会加载顶栏网格、侧栏装饰、扫描线和暗角。「关闭 CRT」恢复页面样式。本机调试端口仅在这次 Codex 运行期间监听回环地址，退出 Codex 时关闭。
 
-## 本机构建
+## 来源与许可
 
-在仓库目录运行以下命令。首次构建会下载并校验官方 Electron ARM64 运行时。
+随附游戏模型、贴图和声音仅限个人本机使用。请将含有这些素材的 `.app` 留在本机。各部分代码和第三方资源的许可见上游说明。
 
-```sh
-bash Build-macOS.sh
-open 'dist/Closure Companion.app'
-```
-
-随附游戏模型、贴图和声音仅限个人本机使用。详情见上游的素材声明。
-
-[素材与第三方许可](outputs/closure-companion/upstream/NOTICE.md)
+[上游来源与许可说明](README.md#来源与许可) · [素材与第三方许可](outputs/closure-companion/upstream/NOTICE.md)

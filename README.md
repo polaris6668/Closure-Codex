@@ -1,5 +1,17 @@
 # 可露希尔的 Codex
 
+## macOS 移植版
+
+`codex/macos-port` 分支是基于 [OndoP3901/Closure-Codex v0.6.0](https://github.com/OndoP3901/Closure-Codex/tree/v0.6.0) 的非官方移植，适用于 Apple Silicon Mac。可以从源码在本机打包成 `Closure Companion.app`。
+
+- 桌宠支持独立运行、跟随 Codex 窗口和登录自启。
+- Codex 任务开始和完成时，桌宠可以切换动作、弹出气泡并播放语音。默认使用日语原声，播报时右键可跳过当前一句。
+- 支持查看 Token 用量和额度，还可以手动启用 Codex 深色配色与页面内 CRT 效果。
+
+[macOS 安装和使用说明](README-macOS.md) · [macOS 更新日志](CHANGELOG-macOS.md) · [素材与第三方许可](outputs/closure-companion/upstream/NOTICE.md)
+
+## 上游 Windows 版说明
+
 把《明日方舟》的可露希尔带到 Windows 桌面。桌宠可随 Codex 工作，也可独立运行，内置 57 条游戏原声，支持自定义语音队列和随机轮换。项目仅提供 Codex 深色主题及页面内装饰，旧 CRT 覆盖层已停用。
 
 本指南对应 `v0.6.0`。这一版将桌宠的联动、显示范围与开机自启拆为独立选项，新增对话字号与气泡大小调整，并让气泡在拖动和吸附时跟随角色。主题仅维护深色，顶部与最左侧菜单使用连续的页面内装饰，一键启用后无需手动导入配色。 [完整更新日志](CHANGELOG.md)
