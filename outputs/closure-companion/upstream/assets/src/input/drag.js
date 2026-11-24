@@ -201,6 +201,7 @@ export function createDrag(deps) {
     if (insidePanel(e.target)) return
     if (!hitTest(e.clientX, e.clientY)) return
     e.preventDefault()
+    if (deps.stopPlayingVoice?.()) return
     openPanel()
   }, true)
 

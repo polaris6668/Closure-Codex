@@ -517,6 +517,11 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
     showBubble: () => { if (!macOS || !stateApi.isPlayingTaskVoice()) bubbleApi.showInteraction() },
     showValleySticker: showValleySticker,
     openPanel: openPanel, closePanel: closePanel, panelIsOpen: panelIsOpen, insidePanel: insidePanel,
+    stopPlayingVoice: () => {
+      if (!macOS || !audio.getVoiceState()) return false
+      audio.stopVoice()
+      return true
+    },
   })
 
   ;(async function boot() {

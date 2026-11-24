@@ -57,8 +57,9 @@ async function run() {
   const inspect = () => read(`(() => {
     const pet = window.__dshClosurePet
     const bubble = document.querySelector('#dsh-closure-pet-bubble')
+    const panel = document.querySelector('#dsh-closure-pet-settings')
     return { phase: pet?.phase, voice: pet?.voice, layers: pet?.layers, animation:pet?.animation,
-      bubble: bubble?.style.opacity === '1' ? bubble.textContent : null }
+      bubble: bubble?.style.opacity === '1' ? bubble.textContent : null, panelOpen: panel?.style.display === 'block' }
   })()`)
   const completionVoice = async () => {
     const current = await inspect()
@@ -78,15 +79,19 @@ async function run() {
     settings.voiceQueues = {...settings.voiceQueues, start:['a18'], completion:['b01','b05']}
     settings.quotaReminderMinutes = 0
   })`)
-  assert.equal(await read(`(() => {
+  const petPoint = await read(`(() => {
     const pet = window.__dshClosurePet
     const host = document.querySelector('#dsh-closure-pet')
     const point = host.getBoundingClientRect()
     for (let y = point.top; y < point.bottom; y += 3) {
-      for (let x = point.left; x < point.right; x += 3) if (pet.hitTest(x, y)) return true
+      for (let x = point.left; x < point.right; x += 3) if (pet.hitTest(x, y)) return { clientX: x, clientY: y }
     }
-    return false
-  })()`), true, 'click hit mask exists in the desktop window')
+    return null
+  })()`)
+  assert.ok(petPoint, 'click hit mask exists in the desktop window')
+  const rightClickPet = () => read(`document.dispatchEvent(new MouseEvent('contextmenu', {
+    ...${JSON.stringify(petPoint)}, button: 2, bubbles: true, cancelable: true,
+  }))`)
 
   append('child', metadata('Codex Desktop', 'parent'), turn('task_started', 'child'), turn('task_complete', 'child'))
   append('cli', metadata('codex_cli_rs'), turn('task_started', 'cli'), turn('task_complete', 'cli'))
@@ -109,6 +114,13 @@ async function run() {
   await waitFor('both terminal events', async () => (await state()).turnEnds.length === 2)
   const first = await waitFor('first Japanese completion voice', completionVoice)
   assert.equal(first.voice.language, 'ja')
+  assert.equal(await rightClickPet(), false, 'right-click on the pet is consumed during speech')
+  const stopped = await inspect()
+  assert.equal(stopped.voice, null, 'right-click stops the current voice')
+  assert.equal(stopped.panelOpen, false, 'stopping a voice does not open settings')
+  await rightClickPet()
+  assert.equal((await inspect()).panelOpen, true, 'right-click while quiet opens settings')
+  await read('window.__dshClosurePet.closePanel()')
   const second = await waitFor('second Japanese voice', async () => {
     const current = await completionVoice()
     if (current?.voice.id !== first.voice.id) return current
