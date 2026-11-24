@@ -399,17 +399,27 @@ export function createBubble(deps) {
 
   function showInteraction() {
     if (Date.now() < bubbleEventUntil || (taskDialogueShown && bubbleMode !== 'interaction')) return
-    showDialogue(deps.standalone ? 'standalone' : 'working', '', 0, 'interaction')
+    const scene = deps.standalone ? 'standalone' : 'working'
+    if (deps.macOS && !settings.bubble) {
+      const id = nextSceneVoice(scene)
+      if (id) audio.playVoice(id).catch(() => {})
+      return
+    }
+    showDialogue(scene, '', 0, 'interaction')
+  }
+
+  function nextSceneVoice(scene) {
+    const standalone = scene === 'standalone'
+    const queue = standalone ? getStandaloneVoiceQueue(settings) : getVoiceQueues(settings)[scene]
+    const queueMode = standalone ? settings.standaloneVoiceQueueMode : settings.voiceQueueMode
+    return nextVoice(queueMode + ':' + scene, queue)
   }
 
   let taskDialogueShown = false
   function showDialogue(scene, eventText = '', eventMs = 0, mode = scene) {
     if (!settings.bubble || document.hidden || (!eventText && Date.now() < bubbleEventUntil)) return false
     if (taskDialogueShown && (mode === 'working' || mode === 'idle' || mode === 'startup')) return false
-    const standalone = scene === 'standalone'
-    const queue = standalone ? getStandaloneVoiceQueue(settings) : getVoiceQueues(settings)[scene]
-    const queueMode = standalone ? settings.standaloneVoiceQueueMode : settings.voiceQueueMode
-    const id = nextVoice(queueMode + ':' + scene, queue)
+    const id = nextSceneVoice(scene)
     if (!id) return false
     showBubble(eventText, eventMs, dialogue[id][1], mode)
     taskDialogueShown = true
@@ -425,6 +435,29 @@ export function createBubble(deps) {
     if (!settings.bubble || !quotaLines(getState()).length) return false
     showBubble(null, null, '', 'quota')
     return true
+  }
+
+  async function playQueuedDialogue(scene, eventText = '') {
+    const id = nextSceneVoice(scene)
+    if (!id && !eventText) return
+    const displayTime = settings.bubble ? BUBBLE_HIDE_MS : 0
+    if (displayTime) {
+      showBubble(eventText, displayTime, id ? dialogue[id][1] : '', scene)
+      taskDialogueShown = true
+    }
+    const holdBubble = () => new Promise((resolve) => setTimeout(resolve, displayTime))
+    if (!id) return holdBubble()
+    let finishVoice
+    const ended = new Promise((resolve) => { finishVoice = resolve })
+    const played = await audio.playVoice(id, (duration) => {
+      if (settings.bubble) {
+        const visibleFor = Math.max(displayTime, duration + 250)
+        if (eventText) bubbleEventUntil = Date.now() + visibleFor
+        scheduleHide(visibleFor)
+      }
+    }, false, finishVoice).catch(() => false)
+    if (!played) finishVoice()
+    await Promise.all([ended, holdBubble()])
   }
 
   function showBubble(eventText, eventMs, clickedLine = '', mode = 'info') {
@@ -495,5 +528,5 @@ export function createBubble(deps) {
     bubbleFrameKey = ''
   }
 
-  return { show: showBubble, showDialogue, showQuota: showQuota, showInteraction: showInteraction, refresh: refreshBubble, follow: followBubble, hide: hideBubble, dispose: dispose, isShown: function () { return bubbleShown } }
+  return { show: showBubble, showDialogue, playQueuedDialogue, showQuota: showQuota, showInteraction: showInteraction, refresh: refreshBubble, follow: followBubble, hide: hideBubble, dispose: dispose, isShown: function () { return bubbleShown } }
 }

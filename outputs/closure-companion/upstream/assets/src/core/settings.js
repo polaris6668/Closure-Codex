@@ -6,7 +6,10 @@
 import { PREFIX, SETTINGS_KEY } from './env.js'
 import { SETTINGS_DEFAULTS, normalizeSettings } from '../shared/protocol.js'
 
-export const settings = { ...SETTINGS_DEFAULTS }
+export const settings = {
+  ...SETTINGS_DEFAULTS,
+  ...(new URLSearchParams(globalThis.location?.search).get('macOS') === '1' && { voiceLanguage: 'ja' }),
+}
 
 export function loadSettings() {
   try {

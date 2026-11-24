@@ -48,6 +48,94 @@ export function createState(deps) {
   let idleSince = null
   let workingSpoken = false
   let idleSpoken = false
+  let lastMacTurn = 0
+  let lastMacEvent = 0
+  let playingMacTurn = false
+  let macStartupDue = null
+  let macToolNoticeAt = 0
+  const macTurnQueue = []
+
+  async function playMacTurns() {
+    if (playingMacTurn || document.hidden) return
+    playingMacTurn = true
+    try {
+      while (macTurnQueue.length && !document.hidden) {
+        const { kind, scene, text, animation } = macTurnQueue.shift()
+        if (kind === 'completed') {
+          playOverlay('Happy')
+          await deps.playQueuedDialogue('completion', settings.voiceQueueMode === 'personal' &&
+            !settings.voiceQueues.completion.length ? '博士，这轮任务完成了。' : '')
+        } else if (scene) {
+          if ((scene === 'working' && !lastState?.work?.active) || (scene === 'idle' && lastState?.work?.active)) continue
+          if (animation) playOverlay(animation)
+          await deps.playQueuedDialogue(scene, text)
+        } else {
+          const duration = 3200
+          showBubble(text || (kind === 'error' ? '博士，这轮任务出错了。' : '博士，这轮任务停下了。'), duration)
+          await new Promise((resolve) => setTimeout(resolve, duration))
+        }
+        syncAnimation(false)
+      }
+    } finally {
+      playingMacTurn = false
+    }
+  }
+
+  function applyMacState(s) {
+    const now = Date.now()
+    const active = Boolean(s.work?.active)
+    const lowWindows = (s.closureCompanion?.quota || []).filter(({ remaining }) => remaining <= 10)
+    const newlyLow = lowWindows.some(({ minutes }) => !lowQuotaWindows.has(minutes))
+    lowQuotaWindows = new Set(lowWindows.map(({ minutes }) => minutes))
+    layers.base = lowWindows.length ? 'Sad_Idle' : 'Idle'
+    layers.work = active ? 'Special_B' : null
+    if (macStartupDue === null) macStartupDue = now + 5000
+    if (now >= macStartupDue && s.closureCompanion?.following) {
+      macStartupDue = Infinity
+      if (!active) macTurnQueue.push({ scene: 'startup', animation: 'Special_A' })
+    }
+    for (const event of s.desktopEvents || []) {
+      if (event.seq <= lastMacEvent) continue
+      lastMacEvent = event.seq
+      if (event.scene === 'toolFailure') {
+        if (!settings.toolFailureNotice || now - macToolNoticeAt < TOOL_MIN_GAP) continue
+        macToolNoticeAt = now
+        const title = event.name ? '博士，' + event.name + ' 报错了。' : '博士，刚才那个工具没跑起来。'
+        macTurnQueue.push({ scene: event.scene, animation: 'Sad_Begin', text: title + '\n' + (event.reason || UNKNOWN_ERROR_NOTICE) })
+      } else if (event.scene !== 'start' || active) {
+        macTurnQueue.push({ scene: event.scene })
+      }
+    }
+    for (const turn of s.turnEnds || []) {
+      if (turn.seq <= lastMacTurn) continue
+      macTurnQueue.push(turn)
+      lastMacTurn = turn.seq
+    }
+    if (active) {
+      workSince ??= now
+      idleSince = null
+      if (!workingSpoken && now - workSince >= WORKING_VOICE_DELAY) {
+        workingSpoken = true
+        macTurnQueue.push({ scene: 'working' })
+      }
+    } else {
+      workSince = null
+      workingSpoken = false
+      if (idleSince === null) {
+        idleSince = now
+        idleSpoken = false
+      }
+      if (s.closureCompanion?.following && !idleSpoken && now - idleSince >= IDLE_VOICE_DELAY) {
+        idleSpoken = true
+        macTurnQueue.push({ scene: 'idle' })
+      }
+    }
+    if (newlyLow) macTurnQueue.push({ text: LOW_QUOTA_NOTICE })
+    syncAnimation(false)
+    if (macTurnQueue.length) playMacTurns().catch(console.error)
+    else if (!playingMacTurn && !isBubbleShown() && settings.quotaReminderMinutes > 0 && !document.hidden &&
+      now - lastQuotaReminder >= settings.quotaReminderMinutes * 60000 && deps.showQuota?.()) lastQuotaReminder = now
+  }
 
   function react(name, message, sound, duration, voiceScene) {
     return playOverlay(name, undefined, function () {
@@ -73,6 +161,10 @@ export function createState(deps) {
     if (!s || typeof s !== 'object') return
     var prev = lastState
     lastState = s
+    if (deps.macOS) {
+      applyMacState(s)
+      return
+    }
     var first = !prev
     if (prev?.closureCompanion?.source !== s.closureCompanion?.source) lowQuotaWindows.clear()
 
@@ -263,6 +355,7 @@ export function createState(deps) {
     setPollInterval: setPollInterval,
     loadHostConfig: loadHostConfig,
     getState: function () { return lastState },
+    isPlayingTaskVoice: () => playingMacTurn,
     dispose: dispose,
   }
 }

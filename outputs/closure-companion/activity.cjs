@@ -14,32 +14,43 @@ function parseToolOutput(output) {
   try { return JSON.parse(output) } catch { return null }
 }
 
-function createActivity(enabled, sessionsRoot) {
+function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
   const files = new Map()
   const pending = new Map()
   const tools = { ok: 0, fail: 0 }
   let turnStartSeq = 0
   const turnEnd = { seq: 0, kind: 'completed', at: 0 }
+  const turnEnds = []
+  const desktopEvents = []
+  let desktopEventSeq = 0
   const errors = { count: 0 }
   const userInput = { seq: 0, scene: null }
   const startedAt = Date.now()
   let rateLimits = { at: 0, windows: [] }
   let watcher
 
+  function desktopEvent(scene, detail = {}) {
+    if (!desktopOnly) return
+    desktopEvents.push({ seq: ++desktopEventSeq, scene, ...detail })
+    if (desktopEvents.length > 256) desktopEvents.shift()
+  }
+
   function noteUserInput(scene, notify) {
     if (!notify) return
     userInput.seq++
     userInput.scene = scene
+    desktopEvent(scene)
   }
 
   function trackUserInput(event, session, notify) {
     if (session.subagent) return
     if (event.type === 'function_call' && typeof event.call_id === 'string') {
-      if (event.name === 'request_user_input') {
+      const name = typeof event.name === 'string' ? event.name.split(/__|[.:/]/).at(-1) : ''
+      if (name === 'request_user_input') {
         if (session.inputCalls.has(event.call_id)) return
         session.inputCalls.set(event.call_id, false)
         noteUserInput('question', notify)
-      } else if (event.name === 'request_user_input_async') {
+      } else if (name === 'request_user_input_async') {
         session.inputCalls.set(event.call_id, true)
       }
     } else if (event.type === 'function_call_output' && session.inputCalls.has(event.call_id)) {
@@ -69,8 +80,14 @@ function createActivity(enabled, sessionsRoot) {
     const event = record.payload
     const at = Date.parse(record.timestamp)
     if (record.type === 'session_meta') {
-      session.subagent = Boolean(event.source?.subagent)
+      session.subagent = Boolean(event.source?.subagent || event.parent_thread_id)
+      session.desktop = event.originator === 'Codex Desktop'
       return
+    }
+    if (desktopOnly) {
+      if (!session.desktop || session.subagent) return
+      if (session.turn && Number.isFinite(at)) session.activityAt = Math.max(session.activityAt, at)
+      notify = notify && at >= startedAt
     }
     if (record.type === 'response_item') {
       trackUserInput(event, session, notify)
@@ -110,7 +127,10 @@ function createActivity(enabled, sessionsRoot) {
 
     if (event.type === 'task_started') {
       if (typeof event.turn_id !== 'string' || session.turn === event.turn_id) return
-      if (notify && !session.subagent) turnStartSeq++
+      if (notify && !session.subagent) {
+        turnStartSeq++
+        desktopEvent('start')
+      }
       session.turn = event.turn_id
       session.mode = 'thinking'
       session.error = null
@@ -134,12 +154,13 @@ function createActivity(enabled, sessionsRoot) {
       if (event.type !== 'item_completed') return
       const item = event.item
       const mcp = item.type === 'McpToolCall'
-      const toolError = mcp && (item.status === 'failed' || item.result?.isError === true || item.result?.is_error === true)
+      const toolError = (mcp || desktopOnly) && (item.status === 'failed' || item.result?.isError === true || item.result?.is_error === true)
       // A command can run normally and still return a nonzero result (for example, a search with no matches).
       if (notify && toolError) {
         tools.fail++
         tools.lastFailName = publicToolNames.has(item.tool) ? item.tool : ''
         tools.lastFailReason = summarizeToolError(item)
+        desktopEvent('toolFailure', { name: tools.lastFailName, reason: tools.lastFailReason })
       }
       else if (notify && item.status === 'completed' && (item.exit_code ?? 0) === 0) tools.ok++
     } else if (event.type === 'error' && !event.will_retry && !event.willRetry) {
@@ -152,7 +173,10 @@ function createActivity(enabled, sessionsRoot) {
       }
     } else if (event.type === 'task_complete' || event.type === 'turn_aborted') {
       if (Number.isFinite(at)) session.activityAt = Math.max(session.activityAt, at)
-      const kind = event.type === 'turn_aborted' ? 'interrupted' : session.error ? 'error' : 'completed'
+      const aborted = event.type === 'turn_aborted'
+      const terminalError = desktopOnly && event.error
+      const kind = aborted ? (terminalError && event.reason !== 'interrupted' ? 'error' : 'interrupted')
+        : (session.error || terminalError ? 'error' : 'completed')
       session.turn = null
       session.mode = null
       session.inputCalls.clear()
@@ -161,10 +185,42 @@ function createActivity(enabled, sessionsRoot) {
         turnEnd.seq++
         turnEnd.kind = kind
         turnEnd.at = Date.now()
-        turnEnd.errorSeq = kind === 'error' ? session.error.seq : 0
-        turnEnd.reason = kind === 'error' ? session.error.reason
+        turnEnd.errorSeq = kind === 'error' ? (session.error?.seq || 0) : 0
+        turnEnd.reason = kind === 'error' ? (session.error?.reason || summarizeError(event.error))
           : kind === 'interrupted' && event.reason === 'interrupted' ? '本轮被中断' : ''
+        if (desktopOnly) {
+          turnEnds.push({ seq: turnEnd.seq, kind })
+          if (turnEnds.length > 256) turnEnds.shift()
+        }
       }
+    }
+  }
+
+  function readDesktopLines(fd, size, session, notify) {
+    const chunk = Buffer.alloc(Math.min(tailLimit, size - session.offset))
+    const lineLimit = 8 * 1024 * 1024
+    let parts = []
+    let lineSize = 0
+    for (let position = session.offset; position < size;) {
+      const count = fs.readSync(fd, chunk, 0, Math.min(chunk.length, size - position), position)
+      if (!count) break
+      const data = chunk.subarray(0, count)
+      for (let start = 0; start < count;) {
+        const newline = data.indexOf(10, start)
+        const end = newline === -1 ? count : newline
+        lineSize += end - start
+        if (lineSize <= lineLimit) {
+          const part = data.subarray(start, end)
+          if (newline === -1) parts.push(Buffer.from(part))
+          else applyLine((parts.length ? Buffer.concat([...parts, part]) : part).toString('utf8'), session, notify)
+        }
+        if (newline === -1) break
+        session.offset = position + end + 1
+        parts = []
+        lineSize = 0
+        start = end + 1
+      }
+      position += count
     }
   }
 
@@ -181,6 +237,14 @@ function createActivity(enabled, sessionsRoot) {
         inputCalls: new Map(), awaitingAnswers: 0,
       }
       if (size === session.offset) return
+      // A new rollout may finish before its first watch callback.
+      const notify = notifyExisting && !truncated && (Boolean(prior) || birthtimeMs >= startedAt)
+      if (desktopOnly) {
+        session.updated = mtimeMs
+        files.set(filename, session)
+        readDesktopLines(fd, size, session, notifyExisting && !truncated)
+        return
+      }
       const start = Math.max(session.offset, size - tailLimit)
       if ((!prior || truncated) && start > 0) {
         const head = Buffer.alloc(Math.min(tailLimit, size))
@@ -199,8 +263,6 @@ function createActivity(enabled, sessionsRoot) {
       if (end < 0) return
       // The writer may be between chunks. Resume immediately after the final newline.
       session.offset = start + end + 1
-      // A newly created rollout can finish before its first watch callback.
-      const notify = notifyExisting && !truncated && (Boolean(prior) || birthtimeMs >= startedAt)
       for (const line of data.subarray(0, end).toString('utf8').split('\n')) applyLine(line, session, notify)
     } catch (error) {
       if (error.code === 'ENOENT') files.delete(filename)
@@ -244,13 +306,15 @@ function createActivity(enabled, sessionsRoot) {
       const now = Date.now()
       let active
       let latest
-      for (const [filename, session] of files) {
-        if (session.subagent) continue
-        if (session.activityAt && (!latest || session.activityAt > latest.activityAt)) latest = session
-        if (session.turn && now - session.activityAt <= activeTimeout &&
-            (!active || session.activityAt > active.activityAt)) active = session
+      const newer = (session, prior) => !prior || session.activityAt > prior.activityAt ||
+        (session.activityAt === prior.activityAt && session.updated > prior.updated)
+      for (const session of files.values()) {
+        if (session.subagent || (desktopOnly && !session.desktop)) continue
+        if (session.activityAt && newer(session, latest)) latest = session
+        if (session.turn && now - session.activityAt <= activeTimeout && newer(session, active)) active = session
       }
       for (const [filename, session] of files) {
+        if (desktopOnly && session.desktop && !session.subagent) continue
         if (session !== latest && now - session.updated > activeTimeout) files.delete(filename)
       }
       const selected = active || latest
@@ -268,6 +332,7 @@ function createActivity(enabled, sessionsRoot) {
         userInput: { ...userInput },
         turnStartSeq,
         turnEnd: { seq: turnEnd.seq, kind: turnEnd.kind, errorSeq: turnEnd.errorSeq, reason: turnEnd.reason },
+        ...(desktopOnly && { turnEnds: [...turnEnds], desktopEvents: [...desktopEvents] }),
       }
     },
     stop() {

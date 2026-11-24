@@ -15,10 +15,15 @@ const demo = process.argv.includes('--demo')
 const smoke = process.argv.includes('--smoke')
 const canvas = process.argv.includes('--canvas')
 const dev = demo || smoke
-const profile = process.env.CLOSURE_STATE_DIR || path.join(__dirname, '.closure-profile')
+const macOS = process.platform === 'darwin'
+const macPort = macOS && !dev
+const { followMacCodex, macStartupSetting } = macPort ? require('./mac-runtime.cjs') : {}
+const profile = process.env.CLOSURE_STATE_DIR || (macOS
+  ? path.join(app.getPath('appData'), 'Closure Companion') : path.join(__dirname, '.closure-profile'))
 const assets = path.join(__dirname, 'upstream', 'assets')
 const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex')
-const powershell = path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+const powershell = process.platform === 'win32'
+  ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe') : null
 const autostart = path.resolve(__dirname, '../closure-autostart')
 const runFile = promisify(execFile)
 app.setName('Closure Companion')
@@ -118,7 +123,7 @@ function startWatcher() {
   child.unref()
 }
 
-function managePetWindow(win) {
+function managePetWindow(win, macMode = false) {
   let showOutsideCodex = true
   let desktopDisplay
   let codexBounds
@@ -134,7 +139,7 @@ function managePetWindow(win) {
       desktopDisplay = display.id
       bounds = display.workArea
     } else if (codexBounds) {
-      bounds = screen.screenToDipRect(null, codexBounds)
+      bounds = macMode ? codexBounds : screen.screenToDipRect(null, codexBounds)
     }
     if (bounds) win.setBounds(bounds)
     if (ready && bounds) {
@@ -165,15 +170,17 @@ function managePetWindow(win) {
       let retry
       let stop
       const track = () => {
-        stop = followCodex(win, (bounds) => {
+        const report = (bounds) => {
           codexBounds = bounds
           syncWindow()
-        }, () => {
+        }
+        const onLost = () => {
           codexBounds = null
           syncWindow()
           // Recover a failed tracker independently of the pet process.
           if (!cancelled) retry = setTimeout(track, 1000)
-        })
+        }
+        stop = macMode ? followMacCodex(report, onLost) : followCodex(win, report, onLost)
       }
       stopTracker = () => { cancelled = true; clearTimeout(retry); stop?.() }
       track()
@@ -185,6 +192,7 @@ function managePetWindow(win) {
   const setLinked = async (enabled) => {
     const query = new URLSearchParams()
     if (canvas) query.set('canvas', '1')
+    if (macMode) query.set('macOS', '1')
     query.set('codexLinked', String(enabled))
     await win.loadURL(`${origin}/?${query}`)
     loaded = true
@@ -242,6 +250,20 @@ function registerRuntimeSettings(win, runtime) {
   ipcMain.handle('closure:set-runtime-setting', (event, key, enabled) => {
     if (!trusted(event)) return { ok: false, error: '无法修改此设置。' }
     return runtime.update(key, enabled)
+  })
+}
+
+function registerMacTheme(win) {
+  const { clipboard } = require('electron')
+  const theme = require('./mac-theme.cjs').createMacTheme(clipboard)
+  ipcMain.handle('closure:theme-action', async (event, name) => {
+    if (event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame) return null
+    return theme.action(name)
+  })
+  app.once('before-quit', (event) => {
+    if (!theme.isRunning()) return
+    event.preventDefault()
+    theme.stop().finally(() => app.quit())
   })
 }
 
@@ -860,13 +882,19 @@ if (!smoke && !app.requestSingleInstanceLock()) {
       activity?.stop()
       quota?.stop()
       const followActivity = codexLinked && !dev && !process.argv.includes('--no-activity')
-      activity = createActivity(followActivity, path.join(codexHome, 'sessions'))
+      activity = createActivity(followActivity, path.join(codexHome, 'sessions'), { desktopOnly: macPort })
       quota = followActivity ? createQuota({ enabled: true, home: codexHome }) : null
     }
     app.once('before-quit', () => { activity?.stop(); quota?.stop() })
     registerProtocol(() => {
       const snapshot = activity.snapshot()
-      if (quota) Object.assign(snapshot.closureCompanion, quota.snapshot())
+      if (quota) {
+        const limits = quota.snapshot()
+        if (macPort && !limits.quota.length && ['official', 'checking'].includes(limits.source)) {
+          limits.quota = snapshot.closureCompanion.quota
+        }
+        Object.assign(snapshot.closureCompanion, limits)
+      }
       return snapshot
     })
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
@@ -875,11 +903,12 @@ if (!smoke && !app.requestSingleInstanceLock()) {
       width: 900, height: 620, frame: demo, transparent: !demo, show: false,
       paintWhenInitiallyHidden: dev,
       resizable: demo, alwaysOnTop: !dev, focusable: dev, skipTaskbar: !demo, hasShadow: false,
+      ...(macPort && { acceptFirstMouse: true, type: 'panel' }),
       backgroundColor: demo ? '#151424' : '#00000000',
       title: '可露希尔 · Codex 桌宠',
       webPreferences: {
         preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true,
-        nodeIntegration: false, offscreen: smoke, backgroundThrottling: !smoke,
+        nodeIntegration: false, offscreen: smoke, backgroundThrottling: !smoke && !macPort,
         autoplayPolicy: 'no-user-gesture-required',
       },
     })
@@ -887,22 +916,28 @@ if (!smoke && !app.requestSingleInstanceLock()) {
     win.webContents.on('will-navigate', (event) => event.preventDefault())
     registerExit(win)
     if (!dev) {
+      if (macPort) {
+        win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true })
+        registerMacTheme(win)
+      }
       registerInput(win)
       win.webContents.once('render-process-gone', () => app.exit(1))
+      const petWindow = managePetWindow(win, macPort)
       const runtime = await createRuntimeController({
-        profile, setStartup: startupSetting,
+        profile,
+        defaults: macPort ? { codexLinked: true, startAtLogin: false } : undefined,
+        setStartup: macPort ? (enabled) => macStartupSetting(app, enabled) : startupSetting,
         onLinkedChange: async (enabled) => {
           configureActivity(enabled)
           await petWindow.setLinked(enabled)
         },
         onDisplayChange: async (enabled) => { await petWindow.setShowOutsideCodex(enabled) },
       })
-      const petWindow = managePetWindow(win)
       registerRuntimeSettings(win, runtime)
       configureActivity(runtime.snapshot().codexLinked)
       await petWindow.setShowOutsideCodex(runtime.snapshot().showOutsideCodex)
       await petWindow.setLinked(runtime.snapshot().codexLinked)
-      startWatcher()
+      if (!macPort) startWatcher()
     } else {
       configureActivity(true)
       if (smoke) {

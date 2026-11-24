@@ -1,7 +1,7 @@
 const { mkdir, readFile, rename, writeFile } = require('node:fs/promises')
 const path = require('node:path')
 
-async function readRuntimeSettings(profile) {
+async function readRuntimeSettings(profile, defaults = { codexLinked: false, startAtLogin: true }) {
   try {
     const value = JSON.parse(await readFile(path.join(profile, 'runtime-settings.json'), 'utf8'))
     if (typeof value.codexLinked !== 'boolean' || typeof value.startAtLogin !== 'boolean' ||
@@ -13,13 +13,13 @@ async function readRuntimeSettings(profile) {
     if (error.code !== 'ENOENT') throw error
   }
   // Keep an explicitly saved choice from releases that offered two modes.
-  let codexLinked = false
+  let codexLinked = defaults.codexLinked
   try {
     codexLinked = (await readFile(path.join(profile, 'launch-mode.txt'), 'utf8')).trim() === 'codex'
   } catch (error) {
     if (error.code !== 'ENOENT') throw error
   }
-  return { codexLinked, showOutsideCodex: true, startAtLogin: true }
+  return { codexLinked, showOutsideCodex: true, startAtLogin: defaults.startAtLogin }
 }
 
 async function saveRuntimeSettings(profile, settings) {
@@ -30,8 +30,8 @@ async function saveRuntimeSettings(profile, settings) {
   await rename(temporary, target)
 }
 
-async function createRuntimeController({ profile, setStartup, onLinkedChange, onDisplayChange = async () => {} }) {
-  let settings = await readRuntimeSettings(profile)
+async function createRuntimeController({ profile, defaults, setStartup, onLinkedChange, onDisplayChange = async () => {} }) {
+  let settings = await readRuntimeSettings(profile, defaults)
   let startAtLogin = settings.startAtLogin
   let startupError = ''
   let busy = false

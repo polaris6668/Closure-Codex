@@ -322,7 +322,7 @@ export function createPanel(deps) {
       settings.voice = voiceSwitch.checked
       saveSettings(true)
       deps.updateVoice()
-      if (voiceQueues.menu.open) voiceQueues.refresh()
+      if (voiceQueues?.menu.open) voiceQueues.refresh()
     })
     voiceRow.appendChild(voiceSwitch)
     row('配音音量').appendChild(volumeControl('配音音量', 'voiceVolume', deps.setVoiceVolume))
@@ -355,7 +355,7 @@ export function createPanel(deps) {
     }
     languageRow.appendChild(languageGroup)
     syncVoiceLanguage()
-    panel.appendChild(voiceQueues.menu)
+    if (voiceQueues) panel.appendChild(voiceQueues.menu)
 
     const previews = document.createElement('details')
     previews.style.cssText = 'margin-top:8px;border-top:1px solid #444958;padding-top:5px'
@@ -433,6 +433,38 @@ export function createPanel(deps) {
       panel.appendChild(notifications)
     }
 
+    if (deps.themeAction) {
+      const appearance = document.createElement('details')
+      appearance.style.cssText = previews.style.cssText
+      const summary = document.createElement('summary')
+      summary.textContent = 'Codex 配色与 CRT'
+      summary.style.cursor = 'pointer'
+      appearance.appendChild(summary)
+      const status = document.createElement('div')
+      status.setAttribute('role', 'status')
+      status.style.cssText = 'max-width:235px;color:#c7cfdf'
+      const run = async (name) => {
+        try {
+          const result = await deps.themeAction(name)
+          status.textContent = result?.message || ''
+        } catch {
+          status.textContent = '主题操作失败。'
+        } finally { positionPanel() }
+      }
+      for (const [name, text] of [['copy', '复制深色配色'], ['enable', '启动 CRT 版 Codex'], ['disable', '关闭 CRT']]) {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.textContent = text
+        button.dataset.themeAction = name
+        button.style.cssText = 'margin:4px 4px 3px 0;padding:3px 6px;border:1px solid #545969;border-radius:6px;background:#303442;color:inherit;cursor:pointer'
+        button.addEventListener('click', () => run(name))
+        appearance.appendChild(button)
+      }
+      appearance.appendChild(status)
+      appearance.addEventListener('toggle', () => { if (appearance.open) run('status'); positionPanel() })
+      panel.appendChild(appearance)
+    }
+
     // 操作
     var actions = document.createElement('div')
     actions.style.cssText = 'display:flex;gap:8px;margin-top:9px'
@@ -445,6 +477,12 @@ export function createPanel(deps) {
       actions.appendChild(b)
     }
     action('重置位置', function () { resetPosition() })
+    if (deps.macOS && !deps.standalone && deps.showQuota) {
+      action('查看用量', function () {
+        if (deps.showQuota()) closePanel()
+        else runtimeStatus.textContent = '暂时没有用量或额度数据，或桌宠正在播报。'
+      })
+    }
     action('完成', function () { closePanel() })
     panel.appendChild(actions)
 
@@ -475,7 +513,7 @@ export function createPanel(deps) {
       panelApi.refreshRuntime()
     }
     panel.style.display = 'block'
-    if (panelApi.voiceQueues.menu.open) panelApi.voiceQueues.refresh()
+    if (panelApi.voiceQueues?.menu.open) panelApi.voiceQueues.refresh()
     positionPanel()
   }
 

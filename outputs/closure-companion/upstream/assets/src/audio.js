@@ -101,7 +101,7 @@ export function createAudio(getSettings) {
     if (previewing) stopVoice()
   }
 
-  async function playVoice(id, onStart, preview = false) {
+  async function playVoice(id, onStart, preview = false, onEnd) {
     stopVoice()
     const { voice, voiceLanguage: language } = getSettings()
     if (!voice || document.hidden) return
@@ -129,6 +129,7 @@ export function createAudio(getSettings) {
         voiceId = null
         previewing = false
       }
+      onEnd?.()
     }
     source.start()
     voiceSource = source

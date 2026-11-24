@@ -40,8 +40,9 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
 (function () {
   if (window.__dshClosurePet) return
   window.__dshClosurePet = { phase: 'boot' }
-  const standalone = new URLSearchParams(location.search).get('codexLinked') === 'false' ||
-    new URLSearchParams(location.search).get('mode') === 'standalone'
+  const query = new URLSearchParams(location.search)
+  const macOS = query.get('macOS') === '1'
+  const standalone = query.get('codexLinked') === 'false' || query.get('mode') === 'standalone'
 
   // ————————————————————— 设置 —————————————————————
   // settings / loadSettings / saveSettings 见 core/settings.js（加载时已合并 localStorage）
@@ -471,8 +472,11 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
   // ————————————————————— 组合：创建 UI 实例 —————————————————————
   // 此时函数声明已提升、var 别名都已赋值，依赖全部就绪。
   panelUi = createPanel({
-    standalone, getRuntimeSettings: window.closureCompanion?.getRuntimeSettings,
+    standalone, macOS,
+    getRuntimeSettings: window.closureCompanion?.getRuntimeSettings,
     setRuntimeSetting: window.closureCompanion?.setRuntimeSetting,
+    themeAction: macOS ? window.closureCompanion?.themeAction : undefined,
+    showQuota: () => !stateApi?.isPlayingTaskVoice() && bubbleApi?.showQuota(),
     quit: window.closureCompanion?.quit,
     settings: settings, saveSettings: saveSettings, resolveFlip: resolveFlip,
     layout: layout, repositionForAnchor: repositionForAnchor, applyOpacity: applyOpacity,
@@ -480,7 +484,7 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
     audioEnsure: audioEnsure, loadSounds: loadSounds, playSound: playSound,
     updateVoice: audio.stopVoice,
     previewVoice: (id) => {
-      if (!settings.voice || document.hidden) return Promise.resolve(false)
+      if (!settings.voice || document.hidden || (macOS && stateApi?.isPlayingTaskVoice())) return Promise.resolve(false)
       hideBubble()
       return audio.playVoice(id, undefined, true)
     },
@@ -489,7 +493,7 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
     size: size, pet: pet, resetPosition: resetPosition, preview: director.preview,
   })
   bubbleApi = createBubble({
-    standalone,
+    standalone, macOS,
     getPetBounds: () => host.getBoundingClientRect(),
     getState: function () { return stateApi ? stateApi.getState() : null }, pet: pet, size: size, settings: settings, audio,
   })
@@ -497,9 +501,10 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
     getState: function () { return stateApi ? stateApi.getState() : null }, pet: pet, size: size, settings: settings,
   })
   stateApi = createState({
+    macOS,
     layers: layers, playOverlay: playOverlay, syncAnimation: syncAnimation,
     showBubble: showBubble, showQuota: bubbleApi.showQuota, refreshBubble: refreshBubble, playSound: playSound,
-    showDialogue: bubbleApi.showDialogue,
+    showDialogue: bubbleApi.showDialogue, playQueuedDialogue: bubbleApi.playQueuedDialogue,
     scheduleStartup: scheduleStartup,
     settings: settings, saveSettings: saveSettings,
     layout: layout, repositionForAnchor: repositionForAnchor,
@@ -509,7 +514,8 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
   dragApi = createDrag({
     hitTest: hitTest, pet: pet, host: host, clampPos: clampPos, applyPosition: applyPosition,
     settle: settle, followBubble: bubbleApi.follow, playSegment: playSegment,
-    showBubble: bubbleApi.showInteraction, showValleySticker: showValleySticker,
+    showBubble: () => { if (!macOS || !stateApi.isPlayingTaskVoice()) bubbleApi.showInteraction() },
+    showValleySticker: showValleySticker,
     openPanel: openPanel, closePanel: closePanel, panelIsOpen: panelIsOpen, insidePanel: insidePanel,
   })
 

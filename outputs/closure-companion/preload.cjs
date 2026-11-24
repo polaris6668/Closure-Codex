@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('closureCompanion', {
   setInteractive: (enabled) => ipcRenderer.send('closure:interactive', enabled === true),
   getRuntimeSettings: () => ipcRenderer.invoke('closure:runtime-settings'),
   setRuntimeSetting: (key, enabled) => ipcRenderer.invoke('closure:set-runtime-setting', key, enabled),
+  themeAction: (action) => ipcRenderer.invoke('closure:theme-action', action),
   quit: () => ipcRenderer.send('closure:quit'),
 })

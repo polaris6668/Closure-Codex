@@ -1,5 +1,7 @@
 const fs = require('node:fs/promises')
 const path = require('node:path')
+const os = require('node:os')
+const { constants } = require('node:fs')
 const { spawn, execFile } = require('node:child_process')
 const { createInterface } = require('node:readline')
 const { promisify } = require('node:util')
@@ -11,6 +13,23 @@ const currencyUnits = new Set(Intl.supportedValuesOf('currency'))
 const run = promisify(execFile)
 
 async function findCodex() {
+  if (process.platform === 'darwin') {
+    const roots = ['/Applications', path.join(os.homedir(), 'Applications')]
+    const names = ['ChatGPT.app', 'Codex.app']
+    for (const root of roots) {
+      for (const name of names) {
+        const resources = path.join(root, name, 'Contents', 'Resources')
+        for (const relative of ['codex-cli/CodexCLI.app/Contents/MacOS/codex', 'codex']) {
+          const executable = path.join(resources, relative)
+          if (await fs.access(executable, constants.X_OK).then(() => true, () => false)) return executable
+        }
+      }
+    }
+    const { stdout } = await run('/usr/bin/which', ['codex'], { timeout: 3000 })
+    const executable = stdout.trim()
+    await fs.access(executable, constants.X_OK)
+    return executable
+  }
   const powershell = path.join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe')
   const { stdout } = await run(powershell, ['-NoProfile', '-NonInteractive', '-Command',
     "(Get-AppxPackage -Name OpenAI.Codex | Select-Object -First 1).InstallLocation"], { windowsHide: true, timeout: 8000 })
