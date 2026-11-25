@@ -5,11 +5,30 @@ const os = require('node:os')
 const path = require('node:path')
 const { EventEmitter } = require('node:events')
 const { setTimeout: delay } = require('node:timers/promises')
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, screen } = require('electron')
 
 const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'closure-macos-smoke-'))
 process.env.CODEX_HOME = fixture
 process.env.CLOSURE_STATE_DIR = path.join(fixture, 'profile')
+const pointerState = path.join(fixture, 'pointer-state')
+const windowHelper = path.join(fixture, 'window-helper')
+const avoidPointer = (avoid) => fs.writeFileSync(pointerState, JSON.stringify({ avoid }) + '\n')
+avoidPointer(true)
+fs.writeFileSync(windowHelper, `#!/bin/sh
+[ "$1" = --pointer-avoidance ] || exit 1
+while [ -f "$CLOSURE_TEST_POINTER_STATE" ]; do
+  cat "$CLOSURE_TEST_POINTER_STATE"
+  sleep 0.05
+done
+`, { mode: 0o700 })
+process.env.CLOSURE_WINDOW_HELPER = windowHelper
+process.env.CLOSURE_TEST_POINTER_STATE = pointerState
+const ignoresMouse = new WeakMap()
+const setIgnoreMouseEvents = BrowserWindow.prototype.setIgnoreMouseEvents
+BrowserWindow.prototype.setIgnoreMouseEvents = function (ignore, ...args) {
+  setIgnoreMouseEvents.call(this, ignore, ...args)
+  ignoresMouse.set(this, ignore)
+}
 const now = new Date()
 const date = [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((part) => String(part).padStart(2, '0'))
 const folder = path.join(fixture, 'sessions', ...date)
@@ -103,6 +122,53 @@ async function run() {
     ...${JSON.stringify(petPoint)}, button: 2, bubbles: true, cancelable: true,
   }))`)
 
+  const cursorScreenPoint = screen.getCursorScreenPoint
+  const bounds = win.getContentBounds()
+  await read('void window.closureCompanion.onCursor(({ avoid }) => { window.testPointerAvoidance = avoid })')
+  const isAvoiding = () => read('window.testPointerAvoidance')
+  const movePointer = ({ clientX, clientY }) => {
+    screen.getCursorScreenPoint = () => ({ x: bounds.x + clientX, y: bounds.y + clientY })
+  }
+  const petVisibility = () => read("getComputedStyle(document.querySelector('#dsh-closure-pet')).visibility")
+  movePointer(petPoint)
+  await waitFor('pet gives way over another app', async () =>
+    ignoresMouse.get(win) && (await petVisibility()) === 'hidden')
+  movePointer({ clientX: Math.floor(bounds.width / 2), clientY: Math.floor(bounds.height / 2) })
+  await waitFor('pet returns after the pointer leaves', async () =>
+    ignoresMouse.get(win) && (await petVisibility()) === 'visible')
+  movePointer(petPoint)
+  avoidPointer(false)
+  await waitFor('Option re-enables mouse input on the pet', async () =>
+    ignoresMouse.get(win) === false && (await petVisibility()) === 'visible')
+  await rightClickPet()
+  const panelPoint = await read(`(() => {
+    const { left, top, width, height } =
+      document.querySelector('#dsh-closure-pet-settings').getBoundingClientRect()
+    return { clientX: left + width / 2, clientY: top + height / 2 }
+  })()`)
+  movePointer(panelPoint)
+  avoidPointer(true)
+  await waitFor('the opened settings menu remains clickable with Option released', async () =>
+    (await isAvoiding()) && (await inspect()).panelOpen && ignoresMouse.get(win) === false)
+  await read('window.__dshClosurePet.closePanel()')
+  movePointer(petPoint)
+  await waitFor('closing the menu restores avoidance', async () =>
+    ignoresMouse.get(win) && (await petVisibility()) === 'hidden')
+  avoidPointer(false)
+  await waitFor('Option restores mouse capture', () => ignoresMouse.get(win) === false)
+  const pointerEvent = (type) => read(`document.querySelector('#dsh-closure-pet').dispatchEvent(
+    new PointerEvent(${JSON.stringify(type)}, {
+      ...${JSON.stringify(petPoint)}, button: 0, pointerId: 1, pointerType: 'mouse', bubbles: true, cancelable: true,
+    }))`)
+  assert.equal(await pointerEvent('pointerdown'), false)
+  avoidPointer(true)
+  await waitFor('Option released during drag', isAvoiding)
+  assert.equal(ignoresMouse.get(win), false, 'releasing Option keeps an active drag captured')
+  await pointerEvent('pointercancel')
+  await waitFor('ending the drag restores avoidance', () => ignoresMouse.get(win) === true)
+  avoidPointer(false)
+  screen.getCursorScreenPoint = cursorScreenPoint
+
   append('child', metadata('Codex Desktop', 'parent'), turn('task_started', 'child'), turn('task_complete', 'child'))
   append('cli', metadata('codex_cli_rs'), turn('task_started', 'cli'), turn('task_complete', 'cli'))
   append('first', metadata(), turn('task_started', 'first'))
@@ -124,6 +190,19 @@ async function run() {
   await waitFor('both terminal events', async () => (await state()).turnEnds.length === 2)
   const first = await waitFor('first Japanese completion voice', completionVoice)
   assert.equal(first.voice.language, 'ja')
+  movePointer(await read(`(() => {
+    const { left, top, width, height } =
+      document.querySelector('#dsh-closure-pet-bubble').getBoundingClientRect()
+    return { clientX: left + width / 2, clientY: top + height / 2 }
+  })()`))
+  const bubbleVisibility = () => read("getComputedStyle(document.querySelector('#dsh-closure-pet-bubble')).visibility")
+  avoidPointer(true)
+  await waitFor('bubble gives way during playback', async () =>
+    ignoresMouse.get(win) && (await bubbleVisibility()) === 'hidden')
+  avoidPointer(false)
+  await waitFor('bubble reappears during the same clip', async () =>
+    (await bubbleVisibility()) === 'visible' && (await inspect()).voice?.id === first.voice.id)
+  screen.getCursorScreenPoint = cursorScreenPoint
   assert.equal(await rightClickPet(), false, 'right-click on the pet is consumed during speech')
   const stopped = await inspect()
   assert.equal(stopped.voice, null, 'right-click stops the current voice')
@@ -184,7 +263,7 @@ async function run() {
   })
   assert.deepEqual(finished.turnEnds.map(({ kind }) => kind), ['completed', 'completed', 'interrupted', 'error', 'completed'])
 
-  app.once('before-quit', () => console.log('macOS smoke passed: visible pet, main-chat filtering, Japanese personal queue and rotation with captions, sequential playback, token usage, extended controls, silent failure/interruption, resumed chat, right-click exit'))
+  app.once('before-quit', () => console.log('macOS smoke passed: pointer avoidance, settings and drag, main-chat filtering, Japanese personal queue and rotation with captions, sequential playback, token usage, extended controls, silent failure/interruption, resumed chat, right-click exit'))
   await read(`(() => {
     window.__dshClosurePet.openPanel()
     const button = [...document.querySelectorAll('#dsh-closure-pet-settings button')].find((item) => item.textContent === '退出桌宠')

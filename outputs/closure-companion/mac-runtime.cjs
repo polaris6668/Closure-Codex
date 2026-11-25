@@ -8,16 +8,15 @@ const run = promisify(execFile)
 const loginLabel = 'local.closure-codex.companion.launch-at-login'
 const escapeXML = (value) => value.replace(/[&<>]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[char])
 
-function followMacCodex(report, onLost) {
+function watchWindowHelper(args, report, onLost) {
   const executable = process.env.CLOSURE_WINDOW_HELPER || path.join(__dirname, 'mac-window-tracker')
-  const child = spawn(executable, [], { stdio: ['ignore', 'pipe', 'ignore'] })
+  const child = spawn(executable, args, { stdio: ['ignore', 'pipe', 'ignore'] })
   const lines = createInterface({ input: child.stdout })
   let stopped = false
   lines.on('line', (line) => {
     if (stopped) return
     try {
-      const { visible, x, y, width, height } = JSON.parse(line)
-      report(visible && [x, y, width, height].every(Number.isFinite) ? { x, y, width, height } : null)
+      report(JSON.parse(line))
     } catch (error) {
       console.error('Closure window tracker:', error.message)
     }
@@ -29,6 +28,16 @@ function followMacCodex(report, onLost) {
     lines.close()
     child.kill()
   }
+}
+
+function followMacCodex(report, onLost) {
+  return watchWindowHelper([], ({ visible, x, y, width, height }) => {
+    report(visible && [x, y, width, height].every(Number.isFinite) ? { x, y, width, height } : null)
+  }, onLost)
+}
+
+function watchMacPointerAvoidance(report) {
+  return watchWindowHelper(['--pointer-avoidance'], ({ avoid }) => report(avoid === true), () => report(false))
 }
 
 async function macStartupSetting(app, enabled) {
@@ -81,4 +90,4 @@ async function macStartupSetting(app, enabled) {
   return true
 }
 
-module.exports = { followMacCodex, macStartupSetting }
+module.exports = { followMacCodex, macStartupSetting, watchMacPointerAvoidance }

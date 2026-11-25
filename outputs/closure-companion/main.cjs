@@ -17,7 +17,7 @@ const canvas = process.argv.includes('--canvas')
 const dev = demo || smoke
 const macOS = process.platform === 'darwin'
 const macPort = macOS && !dev
-const { followMacCodex, macStartupSetting } = macPort ? require('./mac-runtime.cjs') : {}
+const { followMacCodex, macStartupSetting, watchMacPointerAvoidance } = macPort ? require('./mac-runtime.cjs') : {}
 const profile = process.env.CLOSURE_STATE_DIR || (macOS
   ? path.join(app.getPath('appData'), 'Closure Companion') : path.join(__dirname, '.closure-profile'))
 const assets = path.join(__dirname, 'upstream', 'assets')
@@ -204,23 +204,39 @@ function managePetWindow(win, macMode = false) {
 
 function registerInput(win) {
   let interactive = false
+  let petTarget = false
+  let controlsActive = false
+  let avoid = macPort
   let timer
   win.setIgnoreMouseEvents(true)
-  ipcMain.on('closure:interactive', (event, enabled) => {
-    if (win.isDestroyed() || event.sender !== win.webContents || enabled === interactive) return
+  function syncInput() {
+    const enabled = controlsActive || (petTarget && !avoid)
+    if (win.isDestroyed() || enabled === interactive) return
     interactive = enabled
-    win.setIgnoreMouseEvents(!interactive)
-  })
+    win.setIgnoreMouseEvents(!enabled)
+  }
+  function reportInput(event, target, controls) {
+    if (win.isDestroyed() || event.sender !== win.webContents) return
+    petTarget = target === true
+    controlsActive = controls === true
+    syncInput()
+  }
+  ipcMain.on('closure:interactive', reportInput)
   win.webContents.on('did-finish-load', () => {
-    interactive = false
-    win.setIgnoreMouseEvents(true)
+    petTarget = controlsActive = false
+    syncInput()
   })
   function pollCursor() {
     if (win.isDestroyed() || !win.isVisible()) return
     const pointer = screen.getCursorScreenPoint()
     const bounds = win.getContentBounds()
-    win.webContents.send('closure:cursor', { x: pointer.x - bounds.x, y: pointer.y - bounds.y })
+    win.webContents.send('closure:cursor', { x: pointer.x - bounds.x, y: pointer.y - bounds.y, avoid })
   }
+  const stopAvoidance = watchMacPointerAvoidance?.((enabled) => {
+    avoid = enabled
+    syncInput()
+    pollCursor()
+  })
   function stopPolling() {
     clearInterval(timer)
     timer = undefined
@@ -231,7 +247,11 @@ function registerInput(win) {
     timer = setInterval(pollCursor, 24)
   })
   win.on('hide', stopPolling)
-  win.once('closed', stopPolling)
+  win.once('closed', () => {
+    stopPolling()
+    stopAvoidance?.()
+    ipcMain.removeListener('closure:interactive', reportInput)
+  })
 }
 
 function registerExit(win) {

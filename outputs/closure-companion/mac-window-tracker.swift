@@ -21,10 +21,17 @@ func frontCodexBounds() -> CGRect? {
     return nil
 }
 
+let pointerAvoidance = CommandLine.arguments.contains("--pointer-avoidance")
+let petInteractionApps: Set<String> = [codexBundle, "com.apple.finder", "local.closure-codex.companion"]
+
 var last = ""
 repeat {
     let state: [String: Any]
-    if let bounds = frontCodexBounds() {
+    if pointerAvoidance {
+        let active = NSWorkspace.shared.frontmostApplication
+        let option = CGEventSource.flagsState(.combinedSessionState).contains(.maskAlternate)
+        state = ["avoid": active != nil && !petInteractionApps.contains(active?.bundleIdentifier ?? "") && !option]
+    } else if let bounds = frontCodexBounds() {
         state = ["visible": true, "x": Int(bounds.minX), "y": Int(bounds.minY),
                  "width": Int(bounds.width), "height": Int(bounds.height)]
     } else {
@@ -38,5 +45,5 @@ repeat {
         last = line
     }
     if CommandLine.arguments.contains("--once") { break }
-    RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+    RunLoop.current.run(until: Date(timeIntervalSinceNow: pointerAvoidance ? 0.05 : 0.2))
 } while true
