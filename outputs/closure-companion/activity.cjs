@@ -47,7 +47,8 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
   function trackUserInput(event, session, notify) {
     if (session.subagent) return
     if (event.type === 'function_call' && typeof event.call_id === 'string') {
-      const name = typeof event.name === 'string' ? event.name.split(/__|[.:/]/).at(-1) : ''
+      // MCP names include a server namespace and can end in the same tool name.
+      const name = typeof event.name === 'string' ? event.name.replace(/^functions\./, '') : ''
       if (name === 'request_user_input') {
         if (session.inputCalls.has(event.call_id)) return
         session.inputCalls.set(event.call_id, false)
@@ -239,6 +240,7 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
         inputCalls: new Map(), awaitingAnswers: 0,
       }
       if (desktopOnly) {
+        session.missing = false
         session.updated = mtimeMs
         session.observedSize = size
         files.set(filename, session)
@@ -268,7 +270,12 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
       session.offset = start + end + 1
       for (const line of data.subarray(0, end).toString('utf8').split('\n')) applyLine(line, session, notify)
     } catch (error) {
-      if (error.code === 'ENOENT') files.delete(filename)
+      if (error.code === 'ENOENT') {
+        if (desktopOnly) {
+          const session = files.get(filename)
+          if (session) session.missing = true
+        } else files.delete(filename)
+      }
     } finally {
       if (fd !== undefined) fs.closeSync(fd)
     }
@@ -286,18 +293,29 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
 
   function scanDesktopRollouts(notify = true) {
     let entries
-    try { entries = fs.readdirSync(sessionsRoot, { recursive: true }) } catch { return }
+    try { entries = fs.readdirSync(sessionsRoot, { recursive: true }) } catch (error) {
+      if (error.code !== 'ENOENT' || fs.existsSync(sessionsRoot)) return
+      entries = []
+    }
     const cutoff = notify ? startedAt : startedAt - quotaTimeout
+    const missing = new Set(files.keys())
     for (const relative of entries) {
       if (!rolloutName.test(path.basename(relative))) continue
       const filename = path.join(sessionsRoot, relative)
       let stat
-      try { stat = fs.statSync(filename, { throwIfNoEntry: false }) } catch { continue }
+      try { stat = fs.statSync(filename, { throwIfNoEntry: false }) } catch {
+        missing.delete(filename)
+        continue
+      }
       if (!stat?.isFile()) continue
+      missing.delete(filename)
       const session = files.get(filename)
+      if (session) session.missing = false
       if (session ? session.updated === stat.mtimeMs && session.observedSize === stat.size : stat.mtimeMs < cutoff) continue
       readTail(filename, notify)
     }
+    // Keep the saved offsets so a restored rollout resumes without replaying events.
+    for (const filename of missing) files.get(filename).missing = true
   }
 
   if (enabled && fs.existsSync(sessionsRoot)) {
@@ -337,7 +355,7 @@ function createActivity(enabled, sessionsRoot, { desktopOnly = false } = {}) {
       const newer = (session, prior) => !prior || session.activityAt > prior.activityAt ||
         (session.activityAt === prior.activityAt && session.updated > prior.updated)
       for (const session of files.values()) {
-        if (session.subagent || (desktopOnly && !session.desktop)) continue
+        if (session.subagent || (desktopOnly && (!session.desktop || session.missing))) continue
         if (session.activityAt && newer(session, latest)) latest = session
         if (session.turn && now - session.activityAt <= activeTimeout && newer(session, active)) active = session
       }

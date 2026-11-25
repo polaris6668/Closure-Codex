@@ -22,8 +22,8 @@ test('tool and turn failure reasons reach the desktop notification', async (t) =
   const folder = path.join(root, String(date.getFullYear()), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0'))
   fs.mkdirSync(folder, { recursive: true })
   const log = path.join(folder, 'rollout-notices.jsonl')
-  function append(payload) {
-    const record = { timestamp: new Date().toISOString(), type: 'event_msg', payload }
+  function append(payload, type = 'event_msg') {
+    const record = { timestamp: new Date().toISOString(), type, payload }
     fs.appendFileSync(log, JSON.stringify(record) + '\n')
   }
   append({ type: 'task_started', turn_id: 'first' })
@@ -66,8 +66,13 @@ test('tool and turn failure reasons reach the desktop notification', async (t) =
 
   append({ type: 'item_completed', turn_id: 'first', item: { type: 'CommandExecution', status: 'failed', exit_code: 1 } })
   append({ type: 'error', turn_id: 'first', willRetry: true, message: 'request timed out' })
+  append({ type: 'function_call', call_id: 'survey', name: 'mcp__survey__request_user_input' }, 'response_item')
+  append({ type: 'function_call_output', call_id: 'survey', output: { answers: { one: { answers: ['fixture'] } } } }, 'response_item')
+  append({ type: 'function_call', call_id: 'async-survey', name: 'mcp__survey__request_user_input_async' }, 'response_item')
+  append({ type: 'function_call_output', call_id: 'async-survey', output: { accepted: true } }, 'response_item')
   append({ type: 'task_complete', turn_id: 'first' })
   const recovered = await syncWhen((s) => s.turnEnd.seq === 1)
+  assert.deepEqual(recovered.userInput, { seq: 0, scene: null }, 'MCP tools with matching suffixes must not emit built-in input events')
   assert.equal(recovered.tools.fail, 1)
   assert.equal(recovered.errors.count, 0)
   assert.equal(completions, 1)

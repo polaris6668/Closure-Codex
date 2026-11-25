@@ -16,10 +16,10 @@ $runtimePrefix = $prefix + 'work/companion-runtime/electron/'
 $shippedTools = @('tools/Enable-Codex-Theme.cmd','tools/Restore-Codex-Appearance.cmd')
 $required = @('Install.cmd','Uninstall.cmd','Enable-Codex-Theme.vbs','Restore-Codex-Appearance.vbs',
     'tools/Enable-Codex-Theme.cmd','tools/Restore-Codex-Appearance.cmd',
-    'README.md','CHANGELOG.md','Setup.ps1','outputs/Start-Closure.cmd','outputs/closure-companion/main.cjs','outputs/closure-companion/runtime-settings.cjs',
+    'README.md','CHANGELOG.md','README-macOS.md','CHANGELOG-macOS.md','Setup.ps1','outputs/Start-Closure.cmd','outputs/closure-companion/main.cjs','outputs/closure-companion/runtime-settings.cjs',
     'outputs/closure-decoration/Theme.ps1','outputs/closure-decoration/theme-launcher.cjs','outputs/closure-decoration/attach.cjs',
     'outputs/closure-decoration/palette.cjs','outputs/closure-decoration/renderer-payload.cjs','outputs/closure-decoration/README.md','outputs/closure-theme/closure-dark.txt')
-$obsolete = '(?i)(?:/closure-crt/|/tests/|/production/|/companion-profile/|closure-light\.txt$|Copy-(?:Light|Dark)-Theme\.cmd$|launch-with-activity\.cmd$|(?:Start|Stop)-Decorated\.cmd$|Restart-Current\.ps1$|/closure-decoration/(?:launch\.cjs|Launch\.ps1|[Pp]review[^/]*))'
+$obsolete = '(?i)(?:/closure-crt/|/tests/|/production/|/companion-profile/|closure-light\.txt$|Copy-(?:Light|Dark)-Theme\.cmd$|launch-with-activity\.cmd$|(?:Start|Stop)-Decorated\.cmd$|Restart-Current\.ps1$|/closure-decoration/(?:launch\.cjs|Launch\.ps1|[Pp]review[^/]*)|/closure-companion/mac-(?:runtime\.cjs|theme\.cjs|window-tracker(?:\.swift)?)$)'
 $verified = 0
 $testedPayloadFiles = 0
 try {
@@ -38,7 +38,7 @@ try {
         try { $hash = [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-','') }
         finally { $stream.Dispose(); $sha.Dispose() }
         if ($hash -ne (Get-FileHash -LiteralPath $source).Hash) { throw ('Package is out of date: ' + $relative) }
-        if ($TestedPackageRoot -and $relative -notin @('README.md','CHANGELOG.md')) {
+        if ($TestedPackageRoot -and $relative -notin @('README.md','CHANGELOG.md','README-macOS.md','CHANGELOG-macOS.md')) {
             $tested = Join-Path $TestedPackageRoot $relative
             if (!(Test-Path -LiteralPath $tested -PathType Leaf) -or $hash -ne (Get-FileHash -LiteralPath $tested).Hash) {
                 throw ('Final program or asset differs from the tested package: ' + $relative)

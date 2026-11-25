@@ -1,6 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain, protocol, screen, session } = require('electron')
 const { spawn, execFile } = require('node:child_process')
 const { promisify } = require('node:util')
+const { mkdtempSync, rmSync } = require('node:fs')
 const { mkdir, readFile, rename, writeFile } = require('node:fs/promises')
 const readline = require('node:readline')
 const path = require('node:path')
@@ -18,7 +19,9 @@ const dev = demo || smoke
 const macOS = process.platform === 'darwin'
 const macPort = macOS && !dev
 const { followMacCodex, macStartupSetting, watchMacPointerAvoidance } = macPort ? require('./mac-runtime.cjs') : {}
-const profile = process.env.CLOSURE_STATE_DIR || (macOS
+const smokeProfile = smoke && !process.env.CLOSURE_STATE_DIR
+  ? mkdtempSync(path.join(os.tmpdir(), 'closure-smoke-')) : null
+const profile = process.env.CLOSURE_STATE_DIR || smokeProfile || (macOS
   ? path.join(app.getPath('appData'), 'Closure Companion') : path.join(__dirname, '.closure-profile'))
 const assets = path.join(__dirname, 'upstream', 'assets')
 const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex')
@@ -29,6 +32,11 @@ const runFile = promisify(execFile)
 app.setName('Closure Companion')
 app.setPath('userData', profile)
 app.setPath('sessionData', path.join(profile, 'chromium'))
+if (smokeProfile) app.once('quit', () => {
+  try { rmSync(smokeProfile, { recursive: true, force: true }) } catch (error) {
+    console.error('Closure smoke profile cleanup:', error.message)
+  }
+})
 app.commandLine.appendSwitch('disable-background-networking')
 app.commandLine.appendSwitch('disable-component-update')
 protocol.registerSchemesAsPrivileged([{ scheme, privileges: { standard: true, secure: true, supportFetchAPI: true } }])

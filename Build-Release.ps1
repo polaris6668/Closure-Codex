@@ -35,7 +35,7 @@ $staging = Join-Path $destinationPath ($name + '-' + [Guid]::NewGuid().ToString(
 $package = New-Item -ItemType Directory -Path (Join-Path $staging $name)
 $packagePath = $package.FullName
 try {
-    foreach ($file in 'Install.cmd','Uninstall.cmd','Enable-Codex-Theme.vbs','Restore-Codex-Appearance.vbs','Setup.ps1','README.md','CHANGELOG.md') {
+    foreach ($file in 'Install.cmd','Uninstall.cmd','Enable-Codex-Theme.vbs','Restore-Codex-Appearance.vbs','Setup.ps1','README.md','CHANGELOG.md','README-macOS.md','CHANGELOG-macOS.md') {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination $packagePath
     }
     $debugTools = New-Item -ItemType Directory -Path (Join-Path $packagePath 'tools')
@@ -43,8 +43,15 @@ try {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot "tools/$file") -Destination $debugTools.FullName
     }
     $outputPath = New-Item -ItemType Directory -Path (Join-Path $packagePath 'outputs')
-    foreach ($component in 'closure-autostart','closure-companion','closure-pet','closure-theme','closure-decoration') {
+    foreach ($component in 'closure-autostart','closure-pet','closure-theme','closure-decoration') {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot "outputs/$component") -Destination $outputPath.FullName -Recurse
+    }
+    $companion = New-Item -ItemType Directory -Path (Join-Path $outputPath.FullName 'closure-companion')
+    $macOnly = @('mac-runtime.cjs','mac-theme.cjs','mac-window-tracker.swift','mac-window-tracker')
+    foreach ($item in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'outputs/closure-companion')) {
+        if ($item.Name -notin $macOnly) {
+            Copy-Item -LiteralPath $item.FullName -Destination $companion.FullName -Recurse
+        }
     }
     foreach ($file in 'Start-Closure.cmd',([string][char]0x4F7F + [char]0x7528 + [char]0x8BF4 + [char]0x660E + '.txt')) {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot "outputs/$file") -Destination $outputPath.FullName

@@ -71,4 +71,20 @@ test('desktop recovers missed file events without replaying completed turns', as
   assert.equal(activity.snapshot().work.active, false)
   await delay(1700)
   assert.deepEqual(activity.snapshot().turnEnds, expected)
+
+  fs.appendFileSync(file, turn('task_started', 'archive-me'))
+  for (let round = 0; round < 80 && !activity.snapshot().work.active; round++) await delay(50)
+  assert.equal(activity.snapshot().work.active, true)
+  const startSequence = activity.snapshot().turnStartSeq
+  const archive = path.join(root, 'archived.jsonl')
+  fs.renameSync(file, archive)
+  for (let round = 0; round < 80 && activity.snapshot().work.active; round++) await delay(50)
+  assert.equal(activity.snapshot().work.active, false, 'archiving without a watch event clears active work')
+  assert.deepEqual(activity.snapshot().turnEnds, expected, 'archiving does not synthesize a completion')
+
+  fs.renameSync(archive, file)
+  fs.appendFileSync(file, turn('task_complete', 'archive-me'))
+  for (let round = 0; round < 80 && activity.snapshot().turnEnds.length < 3; round++) await delay(50)
+  assert.equal(activity.snapshot().turnStartSeq, startSequence, 'restoring a rollout does not replay its start')
+  assert.deepEqual(activity.snapshot().turnEnds, [...expected, { seq: 3, kind: 'completed' }])
 })
