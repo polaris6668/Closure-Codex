@@ -1,0 +1,13 @@
+{
+  "name": "dsh-closure-companion-bridge",
+  "version": "0.1.2",
+  "description": "可露希尔桌宠的 DSH 任务及官方账号余额联动桥",
+  "type": "module",
+  "main": "lib/index.js",
+  "files": ["lib", "tools", "cordis.patch.yml", "README.md", "LICENSE"],
+  "scripts": { "build": "node tools/build.mjs", "prepack": "node tools/build.mjs" },
+  "keywords": ["dsh-plugin", "closure", "companion"],
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "engines": { "dsh": ">=0.2.2-rc.5 <0.3.0" },
+  "license": "MIT"
+}

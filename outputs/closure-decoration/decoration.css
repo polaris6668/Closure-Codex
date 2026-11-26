@@ -4,7 +4,6 @@ html[data-closure-decoration="on"] {
   --closure-mid: #2b30b8;
   --closure-bottom: #1d2180;
   --closure-line: #ff3ea5;
-  --closure-menu-divider-start: 0px;
   --closure-grid: rgb(238 240 255 / 5%);
   --closure-menu-grid:
     repeating-linear-gradient(90deg, var(--closure-grid) 0 1px, transparent 1px 8px),
@@ -13,41 +12,35 @@ html[data-closure-decoration="on"] {
     linear-gradient(180deg, var(--closure-top), var(--closure-mid) 45%, transparent),
     linear-gradient(90deg, var(--closure-top), var(--closure-mid) 45%, transparent);
   --closure-surface: #0a0b16;
+  --closure-sidebar: #101222;
+  --closure-current: var(--closure-line);
+  --closure-composer-focus: #998ab9;
+  --closure-code-header: #282838;
+  --closure-code-body: #181924;
+  --closure-code-divider: #524b65;
+  --closure-code-label: #c5c4d6;
+  --closure-folder-closed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23c7cad9' d='M1 3h5v1h1v1h8v9H1z'/%3E%3Cpath fill='%2361677e' d='M2 4h3v1h1v1h8v7H2z'/%3E%3C/svg%3E");
+  --closure-folder-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23c7cad9' d='M1 2h5v1h1v1h7v9H1z'/%3E%3Cpath fill='%2361677e' d='M2 3h3v1h1v1h7v7H2z'/%3E%3Cpath fill='%23f0eef8' d='M4 5h8v4H4z'/%3E%3Cpath fill='%23c7cad9' d='M3 7h13v2h-1v2h-1v3H1v-3h1V8h1z'/%3E%3Cpath fill='%2361677e' d='M4 8h11v1h-1v2h-1v2H2v-2h1V9h1z'/%3E%3C/svg%3E");
   --closure-ink: #eef0ff;
-  --closure-edge: rgb(166 120 240 / 17%);
+  --closure-edge: rgb(123 124 171 / 22%);
   --closure-crt-shade: rgb(8 8 16 / 26%);
   --closure-crt-clear: 62%;
   --closure-ambient: radial-gradient(ellipse at 82% 4%, rgb(126 14 228 / 7%), transparent 60%),
     radial-gradient(ellipse at 50% 115%, rgb(66 58 216 / 13%), transparent 70%);
 }
-html[data-closure-decoration="on"] [data-app-shell-frame]:has([data-app-navigation-rail]) {
-  --closure-menu-divider-start: var(--app-shell-navigation-rail-width, 52px);
-}
 /* Paint the application menu row itself; no floating HWND or positioning script. */
 html[data-closure-decoration="on"] :is(.closure-decoration-titlebar,
   [data-app-shell-frame] > :has([id^="application-menu-trigger-"]):not(:has(main))) {
   background-color: var(--closure-bottom);
-  background-image:
-    linear-gradient(90deg, transparent var(--closure-menu-divider-start), var(--closure-line) 0),
-    var(--closure-menu-paint);
-  background-size: 100% 1px, auto, auto,
-    100% var(--app-shell-application-menu-height, 36px), var(--closure-menu-divider-start) 100%;
-  background-position: left bottom, 0 0, 0 0, 0 0, 0 0;
-  background-repeat: no-repeat, repeat, repeat, no-repeat, no-repeat;
-  background-attachment: scroll, fixed, fixed, fixed, fixed;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
-}
-/* All three surfaces sample the same paint and grid at the same viewport coordinates. */
-html[data-closure-decoration="on"] [data-app-shell-frame] [data-app-navigation-rail],
-html[data-closure-decoration="on"] [data-app-shell-frame] .app-shell-left-panel:has([data-app-navigation-rail])::before {
-  background-color: var(--closure-bottom) !important;
   background-image: var(--closure-menu-paint);
-  background-size: auto, auto,
-    100% var(--app-shell-application-menu-height, 36px), var(--closure-menu-divider-start) 100%;
+  background-size: auto, auto, 100% 100%, var(--app-shell-navigation-rail-width, 0px) 100%;
   background-position: 0 0;
   background-repeat: repeat, repeat, no-repeat, no-repeat;
-  background-attachment: fixed;
-  box-shadow: inset -1px 0 0 var(--closure-line), inset 1px 0 0 rgb(255 255 255 / 5%);
+  box-shadow: inset 0 -1px 0 var(--closure-line), inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+html[data-closure-decoration="on"] [data-app-shell-frame] [data-app-navigation-rail],
+html[data-closure-decoration="on"] [data-app-shell-frame] .app-shell-left-panel:has([data-app-navigation-rail])::before {
+  background: var(--closure-sidebar) !important;
 }
 /* Bridge the shell's titlebar inset without moving the navigation or its hit targets. */
 html[data-closure-decoration="on"] [data-app-shell-frame] .app-shell-left-panel:has([data-app-navigation-rail])::before {
@@ -65,12 +58,112 @@ html[data-closure-decoration="on"] .closure-decoration-workspace {
   background-repeat: no-repeat;
 }
 html[data-closure-decoration="on"] :is(.closure-decoration-sidebar, .app-shell-left-panel) {
-  background-color: var(--closure-surface) !important;
-  --app-shell-sidebar-docked-background: var(--closure-surface) !important;
+  background: var(--closure-sidebar) !important;
+  --app-shell-sidebar-docked-background: var(--closure-sidebar) !important;
   box-shadow: inset -1px 0 0 var(--closure-edge);
 }
 html[data-closure-decoration="on"] [data-app-shell-frame] .app-shell-left-panel :is(.sidebar-navigation, [data-sidebar-navigation-root]) {
-  background-color: var(--closure-surface) !important;
+  background: var(--closure-sidebar) !important;
+}
+@media screen and (forced-colors: none) {
+  html[data-closure-decoration="on"] [data-app-action-sidebar-project-row][aria-expanded] {
+    &[aria-expanded="true"] { --closure-folder-icon: var(--closure-folder-open); }
+    /* A custom project marker has its own wrapper. The default folder is a direct SVG. */
+    & [data-sidebar-project-kind="local"][data-sidebar-project-drop-zone="project-icon"] > svg {
+      background: var(--closure-folder-icon, var(--closure-folder-closed)) center / contain no-repeat;
+      & > path { visibility: hidden; }
+    }
+  }
+  html[data-closure-decoration="on"] :is([data-markdown-text-style], [data-orbit-message-block])
+    [data-code-block]:has(> [data-code-block-source]:not([hidden])) {
+    background-color: var(--closure-code-body);
+
+    & > [data-markdown-copy="exclude"]:first-child:has(+ [data-code-block-source]) {
+      background-color: var(--closure-code-header);
+      box-shadow: inset 0 -1px var(--closure-code-divider);
+      color: var(--closure-code-label);
+    }
+    & [data-code-block-controls] button:enabled:not([aria-pressed], [aria-haspopup], [aria-disabled="true"]):is(:hover, :focus-visible) {
+      background-color: var(--closure-code-divider);
+      color: var(--closure-ink);
+    }
+  }
+}
+/* The native row supplies the selected fill and owns its pointer targets. */
+@media (forced-colors: none) {
+  html[data-closure-decoration="on"] [data-app-action-sidebar-thread-row][aria-current="page"] {
+    background-image: linear-gradient(var(--closure-current), var(--closure-current));
+    background-size: 2px 16px;
+    background-position: left 3px center;
+    background-repeat: no-repeat;
+  }
+  /* Home paints the rounded body inside a wrapper that also holds the utility bar. */
+  html[data-closure-decoration="on"] :is(
+    [data-composer-surface-variant]:not([data-composer-utility-bar-variant="home"]),
+    [data-composer-utility-bar-variant="home"] [data-composer-body]
+  ):has([data-codex-composer]:focus) {
+    outline: 1px solid var(--closure-composer-focus);
+    outline-offset: -1px;
+  }
+  /* Send, Queue and Steer share a button with Stop and Voice. Codex exposes
+     the action through its localized accessible name (composer.submitButtonTooltip). */
+  html[data-closure-decoration="on"] [data-composer-trailing-controls]
+    button.size-token-button-composer:enabled:not([aria-disabled="true"], [aria-busy="true"]):is(
+    [aria-label="Send"], [aria-label="Queue"], [aria-label="Steer"], [aria-label="ላክ"], [aria-label="ወረፋ አስይዝ"],
+    [aria-label="አቅጣጫ ስጥ"], [aria-label="إرسال"], [aria-label="إضافة إلى قائمة الانتظار"], [aria-label="توجيه"],
+    [aria-label="Изпращане"], [aria-label="На опашка"], [aria-label="Насочване"], [aria-label="পাঠান"],
+    [aria-label="অপেক্ষায় রাখুন"], [aria-label="পুনরায় চালু করুন"], [aria-label="Pošalji"],
+    [aria-label="Stavi u red"], [aria-label="Usmjeri"], [aria-label="Envia"], [aria-label="Posa a la cua"],
+    [aria-label="Redirigeix"], [aria-label="Odeslat"], [aria-label="Do fronty"], [aria-label="Usměrnit"],
+    [aria-label="Sæt i kø"], [aria-label="Styr"], [aria-label="Senden"],
+    [aria-label="In Warteschlange einreihen"], [aria-label="Steuern"], [aria-label="Αποστολή"],
+    [aria-label="Σε ουρά"], [aria-label="Ανακατεύθυνση"], [aria-label="Enviar"], [aria-label="Poner en cola"],
+    [aria-label="Redirigir"], [aria-label="Saada"], [aria-label="Järjekorda"], [aria-label="Suuna"],
+    [aria-label="ارسال"], [aria-label="در صف قرار دادن"], [aria-label="تغییر مسیر پاسخ\n"],
+    [aria-label="Lähetä"], [aria-label="Aseta jonoon"], [aria-label="Aloita keskustelu uudelleen"],
+    [aria-label="Envoyer"], [aria-label="Mettre en file d’attente"], [aria-label="Orienter"],
+    [aria-label="Réorienter"], [aria-label="મોકલો"], [aria-label="કતારમાં મૂકો"], [aria-label="દિશા આપો"],
+    [aria-label="भेजें"], [aria-label="क्यू में रखें"], [aria-label="दिशा बदलें"],
+    [aria-label="Stavi u red čekanja"], [aria-label="Küldés"], [aria-label="Sorba állítás"],
+    [aria-label="Átirányít"], [aria-label="Ուղարկել"], [aria-label="Հերթագրել"], [aria-label="Ուղղորդել"],
+    [aria-label="Kirim"], [aria-label="Antrekan"], [aria-label="Arahkan"], [aria-label="Senda"],
+    [aria-label="Setja í biðröð"], [aria-label="Stýra"], [aria-label="Invia"], [aria-label="Metti in coda"],
+    [aria-label="Reindirizza"], [aria-label="送信"], [aria-label="キューに追加"], [aria-label="今すぐ反映"],
+    [aria-label="გაგზავნა"], [aria-label="რიგში ჩაყენება"], [aria-label="კორექტირება"], [aria-label="Жіберу"],
+    [aria-label="Кезекке қою"], [aria-label="Бағыттау"], [aria-label="ಕಳುಹಿಸಿ"], [aria-label="ಸರದಿಗೆ ಸೇರಿಸಿ"],
+    [aria-label="ಮರುನಿರ್ದೇಶಿಸಿ"], [aria-label="보내기"], [aria-label="대기열에 추가"], [aria-label="현재 작업 조정"],
+    [aria-label="Siųsti"], [aria-label="Įtraukti į eilę"], [aria-label="Nukreipti"], [aria-label="Sūtīt"],
+    [aria-label="Pievienot rindai"], [aria-label="Virzīt"], [aria-label="Испрати"],
+    [aria-label="Стави во редица"], [aria-label="Насочи"], [aria-label="അയയ്ക്കുക"],
+    [aria-label="ക്യൂവിൽ ചേർക്കുക"], [aria-label="ദിശ മാറ്റുക"], [aria-label="Илгээх"],
+    [aria-label="Дараалалд оруулах"], [aria-label="Шууд чиглүүлэх"], [aria-label="पाठवा"],
+    [aria-label="रांगेत ठेवा"], [aria-label="मार्गदर्शन करा"], [aria-label="Hantar"],
+    [aria-label="Baris gilir"], [aria-label="Halakan"], [aria-label="ပို့မည်"], [aria-label="တန်းစီထားရန်"],
+    [aria-label="လမ်းညွှန်"], [aria-label="Sett i kø"], [aria-label="Verzenden"], [aria-label="ਭੇਜੋ"],
+    [aria-label="ਕਤਾਰ"], [aria-label="ਤੱਤਕਾਲ"], [aria-label="Wyślij"], [aria-label="Kolejkuj"],
+    [aria-label="Wykonaj"], [aria-label="Enfileirar"], [aria-label="Redirecionar"],
+    [aria-label="Colocar na fila"], [aria-label="Orientar"], [aria-label="Trimite"], [aria-label="Coadă"],
+    [aria-label="Redirecționează"], [aria-label="Отправить"], [aria-label="Поставить в очередь"],
+    [aria-label="Скорректировать"], [aria-label="Odoslať"], [aria-label="Pridať do poradia"],
+    [aria-label="Usmerniť"], [aria-label="Pošlji"], [aria-label="Dodaj v čakalno vrsto"],
+    [aria-label="Preusmeri"], [aria-label="Dir"], [aria-label="Saf sugitaan"], [aria-label="Jihee"],
+    [aria-label="Dërgo"], [aria-label="Shto në radhë"], [aria-label="Ridrejto"], [aria-label="Пошаљи"],
+    [aria-label="Стани у ред"], [aria-label="Усмери"], [aria-label="Skicka"], [aria-label="Köa"],
+    [aria-label="Tuma"], [aria-label="Weka kwenye foleni"], [aria-label="Elekeza upya"], [aria-label="அனுப்பு"],
+    [aria-label="வரிசையில் சேர்"], [aria-label="வழிநடத்துக"], [aria-label="పంపు"], [aria-label="క్యూ"],
+    [aria-label="మార్గనిర్దేశం చేయండి"], [aria-label="ส่ง"], [aria-label="เข้าคิว"],
+    [aria-label="เปลี่ยนคำสั่ง"], [aria-label="Mag-send"], [aria-label="I-queue"], [aria-label="I-steer"],
+    [aria-label="Gönder"], [aria-label="Sıraya al"], [aria-label="Yönlendir"], [aria-label="Надіслати"],
+    [aria-label="Поставити в чергу"], [aria-label="Скерувати"], [aria-label="بھیجیں"],
+    [aria-label="قطار میں لگائیں"], [aria-label="فوراً شروع کریں"], [aria-label="Gửi"], [aria-label="Chờ lượt"],
+    [aria-label="Chuyển hướng"], [aria-label="发送"], [aria-label="排队"], [aria-label="引导"], [aria-label="傳送"],
+    [aria-label="加入佇列"], [aria-label="引導"]
+    ) {
+    background-color: var(--closure-line);
+    color: var(--closure-sidebar);
+
+    & .text-composer-primary { color: inherit; }
+  }
 }
 /* CRT is composited by this same page. The pseudo-element cannot intercept any controls. */
 html[data-closure-decoration="on"]::before {

@@ -2,10 +2,11 @@ import AppKit
 import CoreGraphics
 
 private let codexBundle = "com.openai.codex"
+private let dshBundle = "com.deepseek.dsh"
 
-func frontCodexBounds() -> CGRect? {
+func frontHostBounds(_ bundles: Set<String>) -> CGRect? {
     guard let active = NSWorkspace.shared.frontmostApplication,
-          active.bundleIdentifier == codexBundle,
+          let bundle = active.bundleIdentifier, bundles.contains(bundle),
           let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
         return nil
     }
@@ -22,7 +23,10 @@ func frontCodexBounds() -> CGRect? {
 }
 
 let pointerAvoidance = CommandLine.arguments.contains("--pointer-avoidance")
-let petInteractionApps: Set<String> = [codexBundle, "com.apple.finder", "local.closure-codex.companion"]
+let petInteractionApps: Set<String> = [codexBundle, dshBundle, "com.apple.finder", "local.closure-codex.companion"]
+let hostApps = ["codex": codexBundle, "dsh": dshBundle]
+let selectedHosts = Set(CommandLine.arguments.dropFirst().compactMap { hostApps[$0] })
+let followedHosts: Set<String> = selectedHosts.isEmpty ? [codexBundle] : selectedHosts
 
 var last = ""
 repeat {
@@ -31,7 +35,7 @@ repeat {
         let active = NSWorkspace.shared.frontmostApplication
         let option = CGEventSource.flagsState(.combinedSessionState).contains(.maskAlternate)
         state = ["avoid": active != nil && !petInteractionApps.contains(active?.bundleIdentifier ?? "") && !option]
-    } else if let bounds = frontCodexBounds() {
+    } else if let bounds = frontHostBounds(followedHosts) {
         state = ["visible": true, "x": Int(bounds.minX), "y": Int(bounds.minY),
                  "width": Int(bounds.width), "height": Int(bounds.height)]
     } else {

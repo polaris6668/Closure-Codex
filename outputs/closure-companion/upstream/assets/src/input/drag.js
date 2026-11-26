@@ -22,6 +22,7 @@ export function createDrag(deps) {
   var closePanel = deps.closePanel
   var panelIsOpen = deps.panelIsOpen
   var insidePanel = deps.insidePanel
+  var showQuota = deps.showQuota
   var listeners = []
   function listen(target, type, fn, opts) {
     target.addEventListener(type, fn, opts)
@@ -114,6 +115,13 @@ export function createDrag(deps) {
     // 只要出现新的按下，就说明用户有了新意图：撤销上次松手留下的 click 吞口
     swallowClick = false
     if (insidePanel(e.target)) return
+    if (e.button === 1 && hitTest(e.clientX, e.clientY)) {
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      if (panelIsOpen()) closePanel()
+      showQuota?.()
+      return
+    }
     if (e.button !== 0) return
     if (!hitTest(e.clientX, e.clientY)) {
       if (panelIsOpen()) closePanel()
@@ -192,6 +200,11 @@ export function createDrag(deps) {
     if (!swallowClick) return
     swallowClick = false
     if (insidePanel(e.target)) return
+    e.preventDefault()
+    e.stopImmediatePropagation()
+  }, true)
+  listen(window, 'auxclick', function (e) {
+    if (e.button !== 1 || insidePanel(e.target) || !hitTest(e.clientX, e.clientY)) return
     e.preventDefault()
     e.stopImmediatePropagation()
   }, true)

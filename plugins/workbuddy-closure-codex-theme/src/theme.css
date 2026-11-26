@@ -1,0 +1,148 @@
+/* All colour and decoration rules are owned by the reversible theme controller. */
+html[data-closure-workbuddy-theme="on"],
+html[data-closure-workbuddy-theme="on"] body,
+html[data-closure-workbuddy-theme="on"] .cr-theme {
+  __CLOSURE_WORKBUDDY_TOKENS__
+  --closure-top:#3a3fd8;
+  --closure-mid:#2b30b8;
+  --closure-bottom:#1d2180;
+  --closure-line:#ff3ea5;
+  --closure-sidebar:#101222;
+  --closure-current:var(--closure-line);
+  --closure-composer-focus:#998ab9;
+  --closure-code-header: #282838;
+  --closure-code-body: #181924;
+  --closure-code-divider: #524b65;
+  --closure-code-label: #c5c4d6;
+  --closure-folder-closed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23c7cad9' d='M1 3h5v1h1v1h8v9H1z'/%3E%3Cpath fill='%2361677e' d='M2 4h3v1h1v1h8v7H2z'/%3E%3C/svg%3E");
+  --closure-folder-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23c7cad9' d='M1 2h5v1h1v1h7v9H1z'/%3E%3Cpath fill='%2361677e' d='M2 3h3v1h1v1h7v7H2z'/%3E%3Cpath fill='%23f0eef8' d='M4 5h8v4H4z'/%3E%3Cpath fill='%23c7cad9' d='M3 7h13v2h-1v2h-1v3H1v-3h1V8h1z'/%3E%3Cpath fill='%2361677e' d='M4 8h11v1h-1v2h-1v2H2v-2h1V9h1z'/%3E%3C/svg%3E");
+  --closure-grid:rgb(238 240 255 / 5%);
+  --closure-menu-paint:
+    repeating-linear-gradient(90deg,var(--closure-grid) 0 1px,transparent 1px 8px),
+    repeating-linear-gradient(0deg,var(--closure-grid) 0 1px,transparent 1px 8px),
+    linear-gradient(180deg,var(--closure-top),var(--closure-mid) 45%,transparent),
+    linear-gradient(90deg,var(--closure-top),var(--closure-mid) 45%,transparent);
+  --closure-ambient:radial-gradient(ellipse at 82% 4%,rgb(126 14 228 / 7%),transparent 60%),
+    radial-gradient(ellipse at 50% 115%,rgb(66 58 216 / 13%),transparent 70%);
+  color-scheme:dark;
+}
+html[data-closure-workbuddy-theme="on"] body {
+  background:#0a0b16;
+  color:#eef0ff;
+  font-family:var(--vscode-font-family) !important;
+}
+html[data-closure-workbuddy-theme="on"] :is(button,input,textarea,select,[contenteditable="true"]) {
+  font-family:inherit !important;
+}
+html[data-closure-workbuddy-theme="on"] #workbuddy-menubar-container {
+  background-color:var(--closure-bottom) !important;
+  background-image:var(--closure-menu-paint) !important;
+  background-size:auto,auto,100% 100%,var(--closure-workbuddy-menu-width,280px) 100% !important;
+  background-position:0 0 !important;
+  background-repeat:repeat,repeat,no-repeat,no-repeat !important;
+  color:#eef0ff !important;
+  box-shadow:inset 0 -1px 0 var(--closure-line),inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+html[data-closure-workbuddy-theme="on"] :is([data-view-id="sidebar"],.conversation-list--hover-peek) {
+  background:var(--closure-sidebar) !important;
+  --wb-sidebar-bg:transparent;
+  --wb-sidebar-mask-end:transparent;
+  --wb-todo-menu-bg-hover:rgb(238 240 255 / 10%);
+  --wb-todo-menu-bg-active:rgb(238 240 255 / 15%);
+  box-shadow:inset -1px 0 0 rgb(123 124 171 / 22%);
+}
+html[data-closure-workbuddy-theme="on"] :is(.conversation-list,.conversation-list-header,.conversation-list-footer,.conversation-list-scroll,.conversation-list-content) {
+  background-color:transparent !important;
+  border-right-color:transparent;
+}
+html[data-closure-workbuddy-theme="on"] :is(#workbuddy-window-controls-container,#workbuddy-window-controls,.workbuddy-window-controls) {
+  background:transparent !important;
+  color:#eef0ff !important;
+}
+html[data-closure-workbuddy-theme="on"] :is(.teams-container,.teams-grid-scroll-content,.layout-window-frame__body,.layout-window-frame__outlet,.teams-main-content,.wb-home-route) {
+  background-color:#0a0b16 !important;
+  background-image:var(--closure-ambient) !important;
+  background-repeat:no-repeat;
+}
+html[data-closure-workbuddy-theme="on"] :is(.cr-input-container,.cr-input-box__main) {
+  background:var(--wb-bg-card) !important;
+  color:var(--wb-text-strong) !important;
+  border-color:var(--wb-border-default) !important;
+}
+@media screen and (forced-colors: none) {
+  html[data-closure-workbuddy-theme="on"] :is([data-view-id="sidebar"], .conversation-list--hover-peek) {
+    & .collapsible-section-header:has(+ .collapsible-section-motion--expanded) {
+      --closure-folder-icon: var(--closure-folder-open);
+    }
+    /* WorkBuddy's folder glyph has one path. Automated workspaces use a clock. */
+    & :is(.flat-subfolder-row:is([data-flat-row-id*="-sub-workdir:"], [data-flat-row-id*="-sub-space:"]), .conversation-section--local-workspace)
+      .collapsible-section-icon > svg.wb-icon:has(> path:only-child),
+    & .flat-subfolder-row[data-flat-row-id*="-sub-project:"] .collapsible-section-icon > svg.wb-icon {
+      background: var(--closure-folder-icon, var(--closure-folder-closed)) center / contain no-repeat;
+      & > :is(path, g) { visibility: hidden; }
+    }
+  }
+  html[data-closure-workbuddy-theme="on"] .cr-code-like-box:has(> .cr-code-like-box__content > .cr-code-block__pre) {
+    background-color: var(--closure-code-body);
+
+    & > .cr-code-like-box__header {
+      background-color: var(--closure-code-header);
+      box-shadow: inset 0 -1px var(--closure-code-divider);
+    }
+    & .cr-code-block__language { color: var(--closure-code-label); }
+    & .cr-code-block__copy-button:enabled:is(:hover, :focus-visible) {
+      background-color: var(--closure-code-divider);
+      color: #eef0ff;
+    }
+  }
+  html[data-closure-workbuddy-theme="on"] .cb-markdown .cb-markdown-pre-container {
+    --cb-markdown-code-block-bg: var(--closure-code-body);
+    --cb-markdown-code-block-header-bg: var(--closure-code-header);
+    --cb-markdown-code-block-title-fg: var(--closure-code-label);
+
+    & > .cb-markdown-pre__header {
+      box-shadow: inset 0 -1px var(--closure-code-divider);
+    }
+    /* The legacy action list puts Copy first, followed by optional file actions. */
+    & .cb-markdown-pre__header [role="button"][tabindex="0"]:first-child:not(.cb-markdown-pre__title):is(:hover, :focus-visible) {
+      background-color: var(--closure-code-divider);
+      color: #eef0ff;
+    }
+  }
+}
+@media (forced-colors: none) {
+  html[data-closure-workbuddy-theme="on"] :is([data-view-id="sidebar"], .conversation-list--hover-peek)
+    .cb-agent-card[data-conversation-id][data-selected="true"] {
+    /* The native selected and hovered cards use an important background shorthand. */
+    background-image: linear-gradient(var(--closure-current), var(--closure-current)) !important;
+    background-size: 2px 16px !important;
+    background-position: left 4px center !important;
+    background-repeat: no-repeat !important;
+  }
+  html[data-closure-workbuddy-theme="on"] .cr-input-box__main .cr-input-container:has([contenteditable="true"]:focus) {
+    border-color: var(--closure-composer-focus) !important;
+  }
+  /* The native SVG paints a solid disc with a transparent arrow cut out of it. */
+  html[data-closure-workbuddy-theme="on"] .cr-send-button:enabled:not([aria-disabled="true"], .cr-send-button--stop, .cr-send-button--sending, .cr-send-button--custom) .cr-send-button__icon > svg {
+    background-color: var(--closure-sidebar);
+    border-radius: 50%;
+  }
+}
+html[data-closure-workbuddy-theme="on"] .settings-window-root {background-color:#0a0b16 !important;}
+html[data-closure-workbuddy-theme="on"] :is(body.settings-window,.settings-window-chrome) {
+  background:#0a0b16 !important;
+}
+html[data-closure-workbuddy-theme="on"]::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:2147483645;
+  pointer-events:none;
+  user-select:none;
+  background-image:repeating-linear-gradient(180deg,rgb(255 255 255 / 1.12%) 0 1px,rgb(0 0 0 / 0.88%) 1px 3px),
+    radial-gradient(ellipse 130% 110% at 50% 0%,transparent 62%,rgb(8 8 16 / 26%) 100%);
+}
+@media (forced-colors:active) {
+  html[data-closure-workbuddy-theme="on"]::before {content:none;}
+  html[data-closure-workbuddy-theme="on"] :is(#workbuddy-menubar-container,[data-view-id="sidebar"],.teams-container,.layout-window-frame__outlet,.teams-main-content) {background-image:none !important;}
+}

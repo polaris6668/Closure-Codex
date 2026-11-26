@@ -1,5 +1,5 @@
 param(
-    [string] $Version = '0.6.0',
+    [string] $Version = '0.8.0',
     [string] $ElectronZip = (Join-Path $PSScriptRoot 'work/companion-runtime/electron-mirror.zip'),
     [string] $ElectronDirectory = (Join-Path $PSScriptRoot 'work/companion-runtime/electron'),
     [string] $Destination = (Join-Path $PSScriptRoot 'dist')
@@ -35,11 +35,38 @@ $staging = Join-Path $destinationPath ($name + '-' + [Guid]::NewGuid().ToString(
 $package = New-Item -ItemType Directory -Path (Join-Path $staging $name)
 $packagePath = $package.FullName
 try {
-    foreach ($file in 'Install.cmd','Uninstall.cmd','Enable-Codex-Theme.vbs','Restore-Codex-Appearance.vbs','Setup.ps1','README.md','CHANGELOG.md','README-macOS.md','CHANGELOG-macOS.md') {
+    foreach ($file in 'Install.cmd','Uninstall.cmd','Enable-Codex-Theme.vbs','Restore-Codex-Appearance.vbs','Enable-WorkBuddy-Theme.vbs','Restore-WorkBuddy-Appearance.vbs','Start-WorkBuddy-Companion.vbs','Setup.ps1','README.md','CHANGELOG.md','README-macOS.md','CHANGELOG-macOS.md') {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination $packagePath
     }
+    $guides = New-Item -ItemType Directory -Path (Join-Path $packagePath 'docs')
+    foreach ($guide in 'USAGE.md','COMPANION-INTEGRATIONS.md','DSH-THEME.md','WORKBUDDY-THEME.md') {
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot "docs/$guide") -Destination $guides.FullName
+    }
+    $bridgeMetadata = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'plugins/dsh-closure-companion-bridge/package.json') -Raw | ConvertFrom-Json
+    $bridgeBuilt = Join-Path $PSScriptRoot "dist/companion-bridge/v$($bridgeMetadata.version)"
+    & (Join-Path $PSScriptRoot 'tools/Build-Companion-Bridge.ps1') -Destination $bridgeBuilt
+    $bridgeOutput = Join-Path $packagePath 'plugins/dsh-companion'
+    New-Item -ItemType Directory -Path $bridgeOutput -Force | Out-Null
+    foreach ($file in "$($bridgeMetadata.name)-$($bridgeMetadata.version).tgz",'README.md','SHA256SUMS.txt') {
+        Copy-Item -LiteralPath (Join-Path $bridgeBuilt $file) -Destination $bridgeOutput
+    }
+    $themeMetadata = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'plugins/dsh-closure-codex-theme/package.json') -Raw | ConvertFrom-Json
+    $themeBuilt = Join-Path $PSScriptRoot "dist/dsh-theme/v$($themeMetadata.version)"
+    & (Join-Path $PSScriptRoot 'tools/Build-Dsh-Theme.ps1') -Destination $themeBuilt
+    $themeOutput = Join-Path $packagePath 'plugins/dsh-theme'
+    New-Item -ItemType Directory -Path $themeOutput -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $themeBuilt "$($themeMetadata.name)-$($themeMetadata.version).tgz") -Destination $themeOutput
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'plugins/dsh-closure-codex-theme/README.md') -Destination $themeOutput
+    $workbuddySource = Join-Path $PSScriptRoot 'plugins/workbuddy-closure-codex-theme'
+    & node (Join-Path $workbuddySource 'tools/build.mjs')
+    if ($LASTEXITCODE -ne 0) { throw 'WorkBuddy theme build failed.' }
+    $workbuddyOutput = Join-Path $packagePath 'plugins/workbuddy-closure-codex-theme'
+    New-Item -ItemType Directory -Path $workbuddyOutput -Force | Out-Null
+    foreach ($file in 'package.json','README.md','LICENSE','Theme.ps1','Enable-Theme.vbs','Restore-Theme.vbs','lib','src','tools') {
+        Copy-Item -LiteralPath (Join-Path $workbuddySource $file) -Destination $workbuddyOutput -Recurse
+    }
     $debugTools = New-Item -ItemType Directory -Path (Join-Path $packagePath 'tools')
-    foreach ($file in 'Enable-Codex-Theme.cmd','Restore-Codex-Appearance.cmd') {
+    foreach ($file in 'Enable-Codex-Theme.cmd','Restore-Codex-Appearance.cmd','Start-WorkBuddy-Companion.ps1') {
         Copy-Item -LiteralPath (Join-Path $PSScriptRoot "tools/$file") -Destination $debugTools.FullName
     }
     $outputPath = New-Item -ItemType Directory -Path (Join-Path $packagePath 'outputs')

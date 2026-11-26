@@ -13,7 +13,6 @@ import { normalizeSettings } from '../shared/protocol.js'
 const WORKING_VOICE_DELAY = 15_000
 const IDLE_VOICE_DELAY = 5 * 60_000
 
-export const LOW_QUOTA_NOTICE = '博士，额度快见底了。手头还有多少活？'
 const UNKNOWN_ERROR_NOTICE = '奇怪，光看这条报错还不知道是哪儿出了问题。'
 
 export function createState(deps) {
@@ -42,8 +41,6 @@ export function createState(deps) {
   var TOOL_WINDOW = 10000      // 限流窗口
   var TOOL_WINDOW_MAX = 3      // 窗口内最多播几次
   var lowBalance = false
-  var lowQuotaWindows = new Set()
-  let lastQuotaReminder = Date.now()
   let workSince = null
   let idleSince = null
   let workingSpoken = false
@@ -81,13 +78,18 @@ export function createState(deps) {
     }
   }
 
-  function applyMacState(s) {
+  function applyMacState(s, prev) {
     const now = Date.now()
     const active = Boolean(s.work?.active)
-    const lowWindows = (s.closureCompanion?.quota || []).filter(({ remaining }) => remaining <= 10)
-    const newlyLow = lowWindows.some(({ minutes }) => !lowQuotaWindows.has(minutes))
-    lowQuotaWindows = new Set(lowWindows.map(({ minutes }) => minutes))
-    layers.base = lowWindows.length ? 'Sad_Idle' : 'Idle'
+    if (!prev) {
+      lastMacEvent = s.desktopEvents?.at(-1)?.seq || 0
+      lastMacTurn = s.turnEnds?.at(-1)?.seq || 0
+    } else if (s.closureCompanion?.focusKey !== prev.closureCompanion?.focusKey) {
+      macTurnQueue.length = 0
+      workSince = idleSince = null
+      workingSpoken = idleSpoken = false
+    }
+    layers.base = s.closureCompanion?.quota?.some(({ remaining }) => remaining <= 10) ? 'Sad_Idle' : 'Idle'
     layers.work = active ? 'Special_B' : null
     if (macStartupDue === null) macStartupDue = now + 5000
     if (now >= macStartupDue && s.closureCompanion?.following) {
@@ -130,11 +132,8 @@ export function createState(deps) {
         macTurnQueue.push({ scene: 'idle' })
       }
     }
-    if (newlyLow) macTurnQueue.push({ text: LOW_QUOTA_NOTICE })
     syncAnimation(false)
     if (macTurnQueue.length) playMacTurns().catch(console.error)
-    else if (!playingMacTurn && !isBubbleShown() && settings.quotaReminderMinutes > 0 && !document.hidden &&
-      now - lastQuotaReminder >= settings.quotaReminderMinutes * 60000 && deps.showQuota?.()) lastQuotaReminder = now
   }
 
   function react(name, message, sound, duration, voiceScene) {
@@ -162,19 +161,25 @@ export function createState(deps) {
     var prev = lastState
     lastState = s
     if (deps.macOS) {
-      applyMacState(s)
+      applyMacState(s, prev)
       return
     }
     var first = !prev
-    if (prev?.closureCompanion?.source !== s.closureCompanion?.source) lowQuotaWindows.clear()
+    const focusChanged = !first && (s.closureCompanion?.focusKey ?? null) !== (prev.closureCompanion?.focusKey ?? null)
+    if (focusChanged) {
+      deps.hideDialogue?.()
+      deps.resetActivity?.()
+      toolPlayTimes = []
+      workSince = idleSince = null
+      workingSpoken = idleSpoken = false
+    }
 
     var mode = s.work && s.work.mode
     layers.work = mode === 'outputting' ? 'Talk' : (mode === 'thinking' ? 'Special_B' : null)
     const now = Date.now()
     const newTurn = (s.turnStartSeq ?? 0) > (prev?.turnStartSeq ?? 0)
     const active = s.work?.active ?? Boolean(layers.work)
-    const quotaIsLow = s.closureCompanion?.quota.some(({ remaining }) => remaining <= 10)
-    const quotaChanged = s.closureCompanion && quotaIsLow !== (lowQuotaWindows.size > 0)
+    const quotaIsLow = s.closureCompanion?.quota?.some(({ remaining }) => remaining <= 10)
     if (s.closureCompanion) {
       if (active) {
         if (workSince === null || newTurn) {
@@ -192,19 +197,9 @@ export function createState(deps) {
     }
 
     if (s.closureCompanion) {
-      var quota = s.closureCompanion.quota
       layers.base = quotaIsLow ? 'Sad_Idle' : 'Idle'
-      var wasLow = lowQuotaWindows.size > 0
-      for (const entry of quota) {
-        if (entry.remaining <= 10) lowQuotaWindows.add(entry.minutes)
-        else lowQuotaWindows.delete(entry.minutes)
-      }
       if (first) {
-        scheduleStartup(false, quotaIsLow, true)
-      } else if (quotaIsLow && !wasLow) {
-        react('Sad_Begin', LOW_QUOTA_NOTICE, 'fail')
-      } else if (wasLow && !lowQuotaWindows.size) {
-        react('Special_A', '哦，额度回来了。博士，刚才做到哪儿了？', 'coin')
+        scheduleStartup(false, false, true)
       }
     } else if (first) {
       var low = !!(s.balance && s.balance.low)
@@ -217,11 +212,6 @@ export function createState(deps) {
       var low = Boolean(s.balance.low)
       lowBalance = low
       layers.base = low ? 'Sad_Idle' : 'Idle'
-      // 变低 → 难过一次；恢复 → 充值成功式（Special_A），不是难过
-      // 若同一轮还带 topUpSeq，交给下面的"充值到账"分支报，避免两句话打架
-      var sameTickTopUp = s.topUpSeq > ((prev && prev.topUpSeq) || 0)
-      if (low || !sameTickTopUp) react(low ? 'Sad_Begin' : 'Special_A',
-        low ? '博士！预算快见底了\n该批经费啦！' : '经费到账\n可露希尔继续为你效力~', low ? 'fail' : 'coin')
     }
 
     if (prev) {
@@ -250,12 +240,9 @@ export function createState(deps) {
       if (curErrCount > prevErrCount && !terminalFailure) {
         react('Sad_Begin', '嗯？怎么在这儿报错了？\n' + (s.errors.message || UNKNOWN_ERROR_NOTICE), 'fail', 4600)
       }
-      if (s.topUpSeq > prev.topUpSeq) {
-        react('Special_A', '感谢惠顾~\n采购部随时欢迎下次光临！', 'coin')
-      }
       // 本轮结束（turn/end）：完成 / 中断 / 出错各给一句反馈
       const toolFailed = settings.toolFailureNotice && s.tools?.fail > prev.tools?.fail
-      const canSpeak = !quotaChanged && curErrCount <= prevErrCount && !toolFailed
+      const canSpeak = curErrCount <= prevErrCount && !toolFailed
       const inputScene = s.userInput?.scene
       const inputSpoken = s.closureCompanion && canSpeak && !terminalFailure &&
         (s.userInput?.seq ?? 0) > (prev.userInput?.seq ?? 0) &&
@@ -291,15 +278,11 @@ export function createState(deps) {
     }
     // 气泡开着的时候顺带刷新数字（余额 / 倒计时）
     if (isBubbleShown()) refreshBubble()
-    else if (settings.quotaReminderMinutes > 0 && deps.showQuota && s.closureCompanion?.source && !document.hidden &&
-        Date.now() - lastQuotaReminder >= settings.quotaReminderMinutes * 60000 && deps.showQuota()) {
-      lastQuotaReminder = Date.now()
-    }
     syncAnimation(false)
   }
 
   function pollState() {
-    fetch(PREFIX + '/state', { cache: 'no-store' })
+    return fetch(PREFIX + '/state', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null })
       .then(function (s) { try { applyState(s) } catch (err) {} })
       .catch(function () { /* 路由不可用就纯待机，不报错 */ })

@@ -1,15 +1,22 @@
-可露希尔 · Codex Windows 移植 v0.6.0
+可露希尔的 Codex v0.8.0 · Windows 64 位
 
-安装、主题启用、桌宠设置与卸载步骤见上一级目录的 README.md。
+先把完整包解压到准备长期保留的文件夹。以下操作都从解压后的最外层开始。
 
-一键启用当前 Codex 深色主题：双击上一级目录的 Enable-Codex-Theme.vbs，全程隐藏终端。
-首次请先正常打开 Microsoft Store 版 Codex；脚本识别并保存原配置，首次接入普通窗口重启一次。
-自动沿用原账号和聊天，加载配色、字体、顶部菜单栏与 CRT，无需手动导入。
-后续使用创建的“Codex - 可露希尔深色主题”快捷方式直接启动，即使完全退出后也不再重启。
-恢复原外观：双击上一级目录的 Restore-Codex-Appearance.vbs。
-启动失败时会显示错误和日志位置；上一级 tools 文件夹中的 CMD 加 --debug 参数可查看控制台输出。
+桌宠
+双击 Install.cmd。左键点桌宠听台词，按住拖动可移动位置，右键可调大小、换配音或退出。要重新打开，双击 outputs/Start-Closure.cmd。
+安装后默认随 Windows 登录启动。右键勾选相应软件的「联动」后，把鼠标移到桌宠上，按一下滚轮可查看已连接账号的余额、额度或积分。
 
-桌宠由 Install.cmd 安装；手动启动使用 outputs/Start-Closure.cmd。
-右键菜单分别控制 Codex 联动、桌面和其他软件显示、开机自启，底部可退出桌宠。
-「对话字号」可调 12–36 px，「气泡大小」可调 60%–160%，两项独立保存并即时生效。
-work/companion-profile 是个人桌宠设置，work/companion-runtime 是运行时，请勿当作缓存删除。
+Codex 主题
+首次打开微软商店版 Codex，保存工作后双击 Enable-Codex-Theme.vbs。以后用「Codex - 可露希尔深色主题」快捷方式启动。要恢复原外观，保存工作后双击 Restore-Codex-Appearance.vbs。
+
+DSH 主题与桌宠联动
+主题插件在 plugins/dsh-theme，桌宠联动插件在 plugins/dsh-companion。进入对应文件夹，按 README.md 的步骤安装。可在 DSH 的插件管理里停用或移除。
+
+WorkBuddy 主题与桌宠联动
+首次保存工作并从托盘退出 WorkBuddy，再双击 Enable-WorkBuddy-Theme.vbs。以后也用它启动。恢复原外观用 Restore-WorkBuddy-Appearance.vbs，只开桌宠联动用 Start-WorkBuddy-Companion.vbs。
+
+升级与卸载
+先退出旧桌宠，把旧目录的 work/companion-profile 复制到新版相同位置，再双击新版 Install.cmd。
+卸载前先恢复用过的主题，移除安装过的 DSH 插件，再双击 Uninstall.cmd。
+
+首页是 README.md。旧版用法和常见问题在 docs/USAGE.md，每版的改动在 CHANGELOG.md。

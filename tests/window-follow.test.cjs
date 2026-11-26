@@ -15,6 +15,7 @@ let bounds
 let quit = 0
 let scale = 1
 let trackerStopped = false
+let trackerArgs
 let retry
 screen.screenToDipRect = (_window, rect) => ({
   x: rect.x, y: rect.y, width: rect.width / scale, height: rect.height / scale,
@@ -39,7 +40,8 @@ const petWindow = vm.runInNewContext(`${followCodex}\nmanagePetWindow(win)`, {
   win, screen, path, __dirname, process, console, canvas: false,
   setTimeout: (callback) => { retry = callback; return 1 }, clearTimeout: () => { retry = undefined },
   URLSearchParams, origin: 'closure-pet://local',
-  spawn: () => {
+  spawn: (_executable, args) => {
+    trackerArgs = args
     tracker = new EventEmitter()
     tracker.stderr = new EventEmitter()
     tracker.kill = () => { trackerStopped = true }
@@ -108,6 +110,14 @@ async function checkWindow() {
   assert.equal(visible, true)
   await petWindow.setShowOutsideCodex(true)
   assert.equal(visible, true)
+  await petWindow.setHosts({ dshLinked: true, workbuddyLinked: true })
+  await petWindow.setShowOutsideCodex(false)
+  assert.equal(trackerArgs[trackerArgs.indexOf('-Hosts') + 1], 'dsh,workbuddy')
+  report(main)
+  assert.equal(visible, true, 'linked host windows can use the restricted display mode')
+  await petWindow.setHosts({ codexLinked: true })
+  assert.equal(trackerArgs[trackerArgs.indexOf('-Hosts') + 1], 'codex', 'changing enabled hosts refreshes the restricted tracker')
+  await petWindow.setShowOutsideCodex(true)
   win.emit('closed')
   assert.equal(trackerStopped, true)
   assert.equal(screen.listenerCount('display-metrics-changed'), 0)

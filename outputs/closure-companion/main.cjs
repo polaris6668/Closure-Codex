@@ -6,8 +6,7 @@ const { mkdir, readFile, rename, writeFile } = require('node:fs/promises')
 const readline = require('node:readline')
 const path = require('node:path')
 const os = require('node:os')
-const { createActivity } = require('./activity.cjs')
-const { createQuota } = require('./quota.cjs')
+const { createIntegrations } = require('./integrations.cjs')
 const { createRuntimeController } = require('./runtime-settings.cjs')
 
 const scheme = 'closure-pet'
@@ -76,13 +75,14 @@ function registerProtocol(getActivityState) {
   })
 }
 
-function followCodex(win, report, onLost) {
+function followCodex(win, report, onLost, hosts = ['codex']) {
   const powershell = path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
   const handle = win.getNativeWindowHandle()
   const overlayHandle = handle.length === 8 ? handle.readBigUInt64LE() : handle.readUInt32LE()
   const tracker = spawn(powershell, [
     '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'follow-codex.ps1'),
     '-OverlayHandle', String(overlayHandle),
+    '-Hosts', hosts.join(','),
   ], {
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -138,6 +138,8 @@ function managePetWindow(win, macMode = false) {
   let stopTracker
   let ready = false
   let loaded = false
+  let linked
+  let hosts = ['codex']
 
   function syncWindow() {
     if (win.isDestroyed()) return
@@ -188,7 +190,7 @@ function managePetWindow(win, macMode = false) {
           // Recover a failed tracker independently of the pet process.
           if (!cancelled) retry = setTimeout(track, 1000)
         }
-        stop = macMode ? followMacCodex(report, onLost) : followCodex(win, report, onLost)
+        stop = macMode ? followMacCodex(report, onLost, hosts) : followCodex(win, report, onLost, hosts)
       }
       stopTracker = () => { cancelled = true; clearTimeout(retry); stop?.() }
       track()
@@ -198,16 +200,25 @@ function managePetWindow(win, macMode = false) {
     syncWindow()
   }
   const setLinked = async (enabled) => {
+    if (loaded && linked === enabled) return
     const query = new URLSearchParams()
     if (canvas) query.set('canvas', '1')
     if (macMode) query.set('macOS', '1')
     query.set('codexLinked', String(enabled))
     await win.loadURL(`${origin}/?${query}`)
+    linked = enabled
     loaded = true
     ready = true
     syncWindow()
   }
-  return { setLinked, setShowOutsideCodex }
+  async function setHosts(settings) {
+    const next = Object.entries({ codex: settings.codexLinked, dsh: settings.dshLinked, workbuddy: !macMode && settings.workbuddyLinked }).filter(([, enabled]) => enabled).map(([host]) => host)
+    if (!next.length) next.push('codex')
+    if (next.join() === hosts.join()) return
+    hosts = next
+    if (!showOutsideCodex) await setShowOutsideCodex(false)
+  }
+  return { setLinked, setShowOutsideCodex, setHosts }
 }
 
 function registerInput(win) {
@@ -269,15 +280,16 @@ function registerExit(win) {
   })
 }
 
-function registerRuntimeSettings(win, runtime) {
+function registerRuntimeSettings(win, runtime, getStatus = () => ({})) {
   const trusted = (event) => event.sender === win.webContents && event.senderFrame === win.webContents.mainFrame
   ipcMain.handle('closure:runtime-settings', async (event) => {
     if (!trusted(event)) return null
-    return runtime.refresh()
+    return { ...await runtime.refresh(), integrations: getStatus() }
   })
-  ipcMain.handle('closure:set-runtime-setting', (event, key, enabled) => {
+  ipcMain.handle('closure:set-runtime-setting', async (event, key, enabled) => {
     if (!trusted(event)) return { ok: false, error: '无法修改此设置。' }
-    return runtime.update(key, enabled)
+    if (macPort && key === 'workbuddyLinked') return { ok: false, error: 'WorkBuddy 联动目前用于 Windows。' }
+    return { ...await runtime.update(key, enabled), integrations: getStatus() }
   })
 }
 
@@ -341,7 +353,22 @@ async function runRuntimeSmoke(win) {
   const linkedDesktop = await win.webContents.executeJavaScript(`window.closureCompanion.getRuntimeSettings().then((settings) =>
     settings.codexLinked && settings.showOutsideCodex && !settings.startAtLogin)`)
   if (!linkedDesktop) throw new Error('Activity linkage changed desktop display or startup')
-  console.log(JSON.stringify({ runtimeCheckboxes: true, startupIndependent: true, outsideCodexIndependent: true, linkedAndUnlinkedReload: true }))
+  for (const label of ['DSH 联动', 'WorkBuddy 联动']) {
+    await win.webContents.executeJavaScript('window.__dshClosurePet.openPanel()')
+    await waitFor(`${selector(label)} && !${selector(label)}.disabled`)
+    const previousPage = await win.webContents.executeJavaScript('performance.timeOrigin')
+    await win.webContents.executeJavaScript(`${selector(label)}.click()`)
+    await waitFor(`performance.timeOrigin !== ${previousPage} && window.__dshClosurePet?.phase === 'running'`)
+    await win.webContents.executeJavaScript('window.__dshClosurePet.openPanel()')
+    await waitFor(`${selector(label)}?.checked && !${selector(label)}.disabled`)
+    const shared = await win.webContents.executeJavaScript(`document.querySelector('[data-scene="working"]') !== null`)
+    if (!shared) throw new Error('Host linkage did not use the shared voice editor')
+  }
+  await win.loadURL(win.webContents.getURL())
+  await waitFor(`window.__dshClosurePet?.phase === 'running'`)
+  const allLinked = await win.webContents.executeJavaScript(`window.closureCompanion.getRuntimeSettings().then(s=>s.codexLinked && s.dshLinked && s.workbuddyLinked && s.showOutsideCodex && !s.startAtLogin)`)
+  if (!allLinked) throw new Error('Host integration settings did not persist independently')
+  console.log(JSON.stringify({ runtimeCheckboxes: true, startupIndependent: true, outsideCodexIndependent: true, linkedAndUnlinkedReload: true, dshAndWorkBuddyToggles: true, sharedVoiceQueues: true }))
 }
 
 async function runSmoke(win) {
@@ -432,11 +459,9 @@ async function runSmoke(win) {
     const fpsSliderWorks = fpsRange && fpsSlider.nextElementSibling.textContent === '45 FPS' && getSavedSettings().fps === 45
     const notification = [...settings.querySelectorAll('details')].find((item) => item.querySelector('summary').textContent === '提醒与播报')
     notification.open = true
-    const quotaOption = notification.querySelector('button[data-minutes="0"]')
-    quotaOption.click()
     const toolNotice = notification.querySelector('input[type=checkbox]')
     toolNotice.click()
-    const notificationsSaved = quotaOption.getAttribute('aria-pressed') === 'true' &&
+    const notificationsSaved = !notification.querySelector('[data-minutes]') && notification.textContent.includes('中键点击桌宠查看') &&
       getSavedSettings().quotaReminderMinutes === 0 && !getSavedSettings().toolFailureNotice
 
     const editor = settings.querySelector('#dsh-closure-voice-queues')
@@ -593,6 +618,12 @@ async function runSmoke(win) {
     const previewButton = [...settings.querySelectorAll('details button')].find((button) => button.textContent === '哭脸')
     previewButton.click()
     const expressionPreview = pet.animation === 'Sad_Begin' && getComputedStyle(settings).display === 'none'
+    const previewNames = ['Sad_Begin','Sad_Idle','Happy','Special_A','Special_B','Talk','Interact','Interact']
+    const allExpressionPreviews = [...expressions.querySelectorAll('button')].every((button, index) => {
+      pet.openPanel()
+      button.click()
+      return pet.animation === previewNames[index] && getComputedStyle(settings).display === 'none'
+    })
     pet.openPanel()
     const legacyDecorationRemoved = ![...settings.querySelectorAll('summary')].some((item) => item.textContent === 'CRT 显示效果') &&
       (await fetch('/dsh-closure/crt')).status === 410
@@ -663,18 +694,30 @@ async function runSmoke(win) {
     click(hitPoint())
     const interactionRotates = await waitFor(() => pet.voice?.id === firstWorkingVoice)
     pet.hideBubble()
-    let automaticQuota, noQuotaSticker
+    let manualQuota, noAutomaticQuota, noQuotaSticker
     try {
       const base = now()
       Date.now = () => base + 60_000
       pet.applyState(balanceState)
-      const reminderOff = bubble.style.opacity === '0'
-      notification.querySelector('button[data-minutes="1"]').click()
+      Date.now = () => base + 120_000
       pet.applyState(balanceState)
+      noAutomaticQuota = bubble.style.opacity === '0'
+      const manualState = { ...balanceState, closureCompanion: { ...balanceState.closureCompanion, accounts: [
+        { host: 'codex', name: 'Codex', connected: true, source: 'thirdParty', balance: { remaining: 120.5, unit: 'USD' }, tokenUsage },
+        { host: 'workbuddy', name: 'WorkBuddy', connected: true, credits: { balance: '2100' } },
+        { host: 'dsh', name: 'DSH', connected: true, accountStatus: 'ready', wallets: [{ currency: 'CNY', balance: '5.5' }] },
+        { host: 'offline', name: '已断线', connected: false, credits: { balance: '99999' } },
+      ] } }
+      pet.applyState(manualState)
+      const middle = hitPoint()
+      screenPet.dispatchEvent(new PointerEvent('pointerdown', { button: 1, pointerId: 2, clientX: middle.x, clientY: middle.y, bubbles: true, cancelable: true }))
+      screenPet.dispatchEvent(new PointerEvent('pointerup', { button: 1, pointerId: 2, clientX: middle.x, clientY: middle.y, bubbles: true, cancelable: true }))
+      const auxiliary = new MouseEvent('auxclick', { button: 1, clientX: middle.x, clientY: middle.y, bubbles: true, cancelable: true })
+      screenPet.dispatchEvent(auxiliary)
       const quotaText = bubbleText()
-      automaticQuota = reminderOff && bubble.style.opacity === '1' &&
-        quotaText.includes('账户余额120.50USD') &&
-        quotaText.includes('这段对话共用了12,480Token') && quotaText.includes('这轮用了900Token')
+      manualQuota = bubble.style.opacity === '1' && auxiliary.defaultPrevented &&
+        quotaText.includes('Codex账户余额120.50USD') && quotaText.includes('WorkBuddy积分还剩2100') &&
+        quotaText.includes('DSH官方余额5.50CNY') && !quotaText.includes('99999') && !quotaText.includes('已断线') && !quotaText.includes('Token')
       pet.applyState(state('idle', 4, 2))
       pet.showValleySticker()
       noQuotaSticker = !document.querySelector('#dsh-closure-pet-sticker')
@@ -683,9 +726,9 @@ async function runSmoke(win) {
     }
     defaultMode.click()
     return { dragged, clicked, panelOpened, fpsSliderWorks, notificationsSaved, defaultQueues, defaultOverridesPersonal, queueEditor, voiceSettings, voiceVolumeWorks,
-      startVoice, clickKeepsDialogue, startRotates, expressionPreview, legacyDecorationRemoved, startupScheduled,
+      startVoice, clickKeepsDialogue, startRotates, expressionPreview, allExpressionPreviews, legacyDecorationRemoved, startupScheduled,
       workingDialogue, workingOnlyOnce, completionDialogue, failedTurnSkipsCompletion, idleDialogue, idleOnlyOnce,
-      startupDialogue, noQuotaOnClick, automaticQuota, noQuotaSticker, clickSharesWorkingQueue, interactionRotates,
+      startupDialogue, noQuotaOnClick, noAutomaticQuota, manualQuota, noQuotaSticker, clickSharesWorkingQueue, interactionRotates,
       questionVoice, answerRotation,
       disabledToolNotice, toolVoice, toolVoiceRotates, toolTextWithoutVoice }
   })()`)
@@ -904,27 +947,9 @@ if (!smoke && !app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.whenReady().then(async () => {
-    let activity
-    let quota
-    function configureActivity(codexLinked) {
-      activity?.stop()
-      quota?.stop()
-      const followActivity = codexLinked && !dev && !process.argv.includes('--no-activity')
-      activity = createActivity(followActivity, path.join(codexHome, 'sessions'), { desktopOnly: macPort })
-      quota = followActivity ? createQuota({ enabled: true, home: codexHome }) : null
-    }
-    app.once('before-quit', () => { activity?.stop(); quota?.stop() })
-    registerProtocol(() => {
-      const snapshot = activity.snapshot()
-      if (quota) {
-        const limits = quota.snapshot()
-        if (macPort && !limits.quota.length && ['official', 'checking'].includes(limits.source)) {
-          limits.quota = snapshot.closureCompanion.quota
-        }
-        Object.assign(snapshot.closureCompanion, limits)
-      }
-      return snapshot
-    })
+    const integrations = createIntegrations({ codexHome, macMode: macPort, enabled: !dev && !process.argv.includes('--no-activity') })
+    app.once('before-quit', () => integrations.stop())
+    registerProtocol(() => integrations.snapshot())
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
     session.defaultSession.webRequest.onBeforeRequest((details, callback) => callback({ cancel: new URL(details.url).protocol !== `${scheme}:` }))
     const win = new BrowserWindow({
@@ -933,7 +958,7 @@ if (!smoke && !app.requestSingleInstanceLock()) {
       resizable: demo, alwaysOnTop: !dev, focusable: dev, skipTaskbar: !demo, hasShadow: false,
       ...(macPort && { acceptFirstMouse: true, type: 'panel' }),
       backgroundColor: demo ? '#151424' : '#00000000',
-      title: '可露希尔 · Codex 桌宠',
+      title: '可露希尔 · 桌宠',
       webPreferences: {
         preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true,
         nodeIntegration: false, offscreen: smoke, backgroundThrottling: !smoke && !macPort,
@@ -955,26 +980,28 @@ if (!smoke && !app.requestSingleInstanceLock()) {
         profile,
         defaults: macPort ? { codexLinked: true, startAtLogin: false } : undefined,
         setStartup: macPort ? (enabled) => macStartupSetting(app, enabled) : startupSetting,
-        onLinkedChange: async (enabled) => {
-          configureActivity(enabled)
-          await petWindow.setLinked(enabled)
+        onIntegrationsChange: async (settings) => {
+          integrations.configure(settings)
+          await petWindow.setHosts(settings)
+          await petWindow.setLinked(settings.codexLinked || settings.dshLinked || (!macPort && settings.workbuddyLinked))
         },
         onDisplayChange: async (enabled) => { await petWindow.setShowOutsideCodex(enabled) },
       })
-      registerRuntimeSettings(win, runtime)
-      configureActivity(runtime.snapshot().codexLinked)
+      registerRuntimeSettings(win, runtime, () => integrations.status())
+      integrations.configure(runtime.snapshot())
+      await petWindow.setHosts(runtime.snapshot())
       await petWindow.setShowOutsideCodex(runtime.snapshot().showOutsideCodex)
-      await petWindow.setLinked(runtime.snapshot().codexLinked)
+      const { codexLinked, dshLinked, workbuddyLinked } = runtime.snapshot()
+      await petWindow.setLinked(codexLinked || dshLinked || (!macPort && workbuddyLinked))
       if (!macPort) startWatcher()
     } else {
-      configureActivity(true)
       if (smoke) {
         // Exercise the production controller and IPC without changing Windows startup.
         let registered = true
         const runtime = await createRuntimeController({
           profile,
           setStartup: async (enabled) => { if (enabled !== undefined) registered = enabled; return registered },
-          onLinkedChange: async (enabled) => { await win.loadURL(`${origin}/?codexLinked=${enabled}${canvas ? '&canvas=1' : ''}`) },
+          onIntegrationsChange: async (settings) => { await win.loadURL(`${origin}/?codexLinked=${settings.codexLinked || settings.dshLinked || settings.workbuddyLinked}${canvas ? '&canvas=1' : ''}`) },
         })
         await runtime.update('codexLinked', true)
         registerRuntimeSettings(win, runtime)

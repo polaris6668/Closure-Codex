@@ -13,13 +13,13 @@ async function fixture(t) {
 
 test('fresh profiles default to desktop and login startup; explicit legacy linkage migrates', async (t) => {
   const profile = await fixture(t)
-  assert.deepEqual(await readRuntimeSettings(profile), { codexLinked: false, showOutsideCodex: true, startAtLogin: true })
+  assert.deepEqual(await readRuntimeSettings(profile), { codexLinked: false, dshLinked: false, workbuddyLinked: false, showOutsideCodex: true, startAtLogin: true })
   await fs.writeFile(path.join(profile, 'launch-mode.txt'), 'codex\n')
   assert.equal((await readRuntimeSettings(profile)).codexLinked, true)
   await fs.writeFile(path.join(profile, 'launch-mode.txt'), 'standalone\n')
   assert.equal((await readRuntimeSettings(profile)).codexLinked, false)
   await saveRuntimeSettings(profile, { codexLinked: true, startAtLogin: false })
-  assert.deepEqual(await readRuntimeSettings(profile), { codexLinked: true, showOutsideCodex: true, startAtLogin: false })
+  assert.deepEqual(await readRuntimeSettings(profile), { codexLinked: true, dshLinked: false, workbuddyLinked: false, showOutsideCodex: true, startAtLogin: false })
 })
 
 test('activity linkage, desktop display and startup toggle independently and survive relaunch', async (t) => {
@@ -101,4 +101,23 @@ test('updates reject invalid values and overlapping changes', async (t) => {
   while (!release) await new Promise((resolve) => setImmediate(resolve))
   release()
   assert.equal((await first).ok, true)
+})
+
+test('DSH and WorkBuddy linkage migrate independently and roll back all integration side effects', async t => {
+  const profile = await fixture(t)
+  await saveRuntimeSettings(profile, { codexLinked: true, startAtLogin: false })
+  let applied
+  const runtime = await createRuntimeController({ profile, setStartup: async () => false,
+    onIntegrationsChange: async value => { applied = value; if (value.workbuddyLinked) throw Error('Host reload failed') },
+  })
+  assert.equal((await runtime.update('dshLinked', true)).ok, true)
+  assert.equal(applied.dshLinked, true)
+  assert.equal(applied.codexLinked, true)
+  assert.equal((await runtime.update('workbuddyLinked', true)).ok, false)
+  const saved = await readRuntimeSettings(profile)
+  assert.equal(saved.dshLinked, true)
+  assert.equal(saved.workbuddyLinked, false)
+  assert.equal(saved.codexLinked, true)
+  assert.equal(saved.startAtLogin, false)
+  assert.deepEqual(applied, saved)
 })

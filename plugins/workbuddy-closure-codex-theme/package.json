@@ -1,0 +1,9 @@
+{
+  "name": "workbuddy-closure-codex-theme",
+  "version": "0.1.1",
+  "private": true,
+  "description": "可露希尔 Codex 深色主题的 WorkBuddy 桌面适配",
+  "type": "module",
+  "scripts": { "build": "node tools/build.mjs" },
+  "license": "MIT"
+}

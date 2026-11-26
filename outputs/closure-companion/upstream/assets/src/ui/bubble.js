@@ -12,6 +12,25 @@ import { createVoiceRotation } from '../core/voice-rotation.js'
 
 export function quotaLines(state) {
   const companion = state?.closureCompanion
+  if (Array.isArray(companion?.accounts)) {
+    const lines = companion.accounts.filter(account => account.connected === true).flatMap(account => {
+      const prefix = account.name || account.host
+      if (account.host === 'workbuddy') {
+        if (account.credits) return [`WorkBuddy 积分${account.credits.unlimited ? '不限量' : '还剩 ' + account.credits.balance}`]
+      } else if (account.host === 'dsh' && account.accountStatus === 'ready') {
+        const walletLine = (wallet, bonus) => `DSH ${bonus ? '赠送余额' : '官方余额'} ${Number(wallet.balance).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${wallet.currency}`
+        const result = [...(account.wallets || []).map(v => walletLine(v, false)), ...(account.bonusWallets || []).map(v => walletLine(v, true))]
+        return result.length ? result : ['DSH 官方余额：暂无钱包']
+      } else if (account.host === 'codex') {
+        const values = quotaLines({ closureCompanion: { ...account, tokenUsage: null, accounts: undefined } })
+        return values.length ? values.map(line => prefix + ' ' + line) : ['Codex：账户余额暂不可用']
+      }
+      const message = { 'signed-out': '未登录官方账号', unavailable: '官方余额暂不可用', disconnected: '等待连接', checking: '正在查询余额' }[account.accountStatus] || '等待官方余额'
+      return [`${prefix}：${message}`]
+    })
+    if (companion.showTokenUsage) addTokenUsage(lines, companion.tokenUsage)
+    return lines
+  }
   const lines = []
   if (companion?.source === 'thirdParty') {
     const balance = companion.balance
@@ -26,12 +45,15 @@ export function quotaLines(state) {
       lines.push(`ChatGPT 积分${companion.credits.unlimited ? '不限量' : '还剩 ' + companion.credits.balance}`)
     }
   }
-  const usage = companion?.tokenUsage
+  addTokenUsage(lines, companion?.tokenUsage)
+  return lines
+}
+
+function addTokenUsage(lines, usage) {
   if (usage) {
     if (usage.turn !== null) lines.push(`这轮用了 ${usage.turn.toLocaleString('zh-CN')} Token`)
     lines.push(`这段对话共用了 ${usage.total.toLocaleString('zh-CN')} Token`)
   }
-  return lines
 }
 
 export function createBubble(deps) {
@@ -290,7 +312,7 @@ export function createBubble(deps) {
     var s = getState()
     if (bubbleMode === 'quota') {
       const usage = quotaLines(s)
-      return usage.length ? ['喏，博士，这次的用量在这儿。', ...usage] : []
+      return usage.length ? ['博士，已连接账户的余额在这儿。', ...usage] : []
     }
     if (interactionText) return [interactionText]
     if (s?.closureCompanion) return lines
@@ -528,5 +550,6 @@ export function createBubble(deps) {
     bubbleFrameKey = ''
   }
 
-  return { show: showBubble, showDialogue, playQueuedDialogue, showQuota: showQuota, showInteraction: showInteraction, refresh: refreshBubble, follow: followBubble, hide: hideBubble, dispose: dispose, isShown: function () { return bubbleShown } }
+  return { show: showBubble, showDialogue, playQueuedDialogue, showQuota: showQuota, showInteraction: showInteraction, refresh: refreshBubble, follow: followBubble, hide: hideBubble,
+    hideDialogue: () => { if (bubbleMode !== 'quota') hideBubble() }, dispose: dispose, isShown: function () { return bubbleShown } }
 }

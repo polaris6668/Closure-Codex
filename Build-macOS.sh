@@ -33,7 +33,7 @@ bundle="$stage/$bundle_name"
 mv "$stage/Electron.app" "$bundle"
 resources="$bundle/Contents/Resources"
 mkdir "$resources/app"
-for file in activity.cjs bridge.js error-summary.cjs index.html main.cjs mac-runtime.cjs mac-theme.cjs package.json preload.cjs quota.cjs runtime-settings.cjs; do
+for file in activity.cjs bridge.js dsh.cjs error-summary.cjs index.html integrations.cjs main.cjs mac-runtime.cjs mac-theme.cjs package.json preload.cjs quota.cjs runtime-settings.cjs; do
   cp "$root/outputs/closure-companion/$file" "$resources/app/"
 done
 ditto "$root/outputs/closure-companion/upstream" "$resources/app/upstream"

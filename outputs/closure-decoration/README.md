@@ -1,28 +1,30 @@
-# 可露希尔页面装饰
+# Codex 可露希尔深色主题
 
-提供实验性的官方 Codex CDP 接入入口。旧的外部 CRT 窗口已停用；新装饰绘制在 Codex 页面元素内，随窗口一起重绘。
+适用于 Windows 上的微软商店版 Codex。主题包含紫蓝网格顶栏、深蓝黑侧栏和屏幕扫描线。当前对话旁有一段洋红短线，点击输入框时会沿圆角显示淡紫细线。
 
-正式分发入口为项目根目录 `Enable-Codex-Theme.vbs`：首次先正常打开 Microsoft Store 版 Codex，等待主界面出现并保存工作，再运行主题脚本。脚本从实际进程读取原数据目录并保存，普通窗口首次接入重启一次；保留原账号和 `CODEX_HOME`，加载基础配色、字体与装饰，无需手动导入。桌面及开始菜单创建「Codex - 可露希尔深色主题」快捷方式。之后使用它冷启动时直接携带 CDP 参数打开一次，已有主题窗口直接接入，均不重启。`Restore-Codex-Appearance.vbs` 关闭主题助手、移除对应快捷方式并恢复普通启动。
+## 开启与恢复
 
-VBS 及快捷方式通过 Windows 脚本宿主隐藏运行 PowerShell，整个辅助启动过程不创建可见终端，成功时不弹窗，失败时显示错误和日志位置。旧版指向根目录 CMD 的快捷方式会在再次启用后更新。CMD 排错入口已移至根目录的 `tools` 文件夹，默认转交上一级 VBS；添加 `--debug` 参数可保留控制台输出用于排错。直接双击 CMD 时可能由系统短暂显示命令窗口，完全隐藏请使用根目录 VBS 或快捷方式。
+1. 首次打开 Codex，等到主界面出现，保存手头的工作。
+2. 在完整包的最外层双击 `Enable-Codex-Theme.vbs`。普通 Codex 窗口可能重启一次，原账号和聊天记录会保留。
+3. 以后用桌面或开始菜单中的「Codex - 可露希尔深色主题」快捷方式启动。软件完全关闭后也可以直接用它打开。
 
-启动器优先使用完整安装包随附的 Electron 作为脚本运行时，源码环境也支持 Node.js 22+。每次从 Appx 注册清单发现当前可执行文件和应用 ID，保留包身份，不依赖用户名称或固定安装版本。首次没有运行中的 Codex 时只提示先打开；主进程还未产生可识别的配置路径时短暂等待，不另开实例。保存路径后，冷启动直接以该目录携带 CDP 参数启动，不再经过普通启动。多个配置实例无法明确选择时停止并提示。已有可核验的 CDP 时直接接入，普通启动缺少 CDP 时才重启；调试启动失败则尝试恢复该原配置的普通启动。保存目录失效时不创建替代目录，提示用户先打开 Codex 重新识别。
+要恢复原外观，保存工作后双击 `Restore-Codex-Appearance.vbs`，主题快捷方式会一并移除。若之前在 Codex 里手动导入过配色，恢复后会回到那套配色。再次开启时，直接双击启用文件即可。
 
-状态文件和日志位于 `%LOCALAPPDATA%\ClosureCodexTheme`，可通过 `Theme.ps1 -Mode status` 查看。端口从 19338–19357 自动选择空闲项，只绑定本机回环。CDP 对同一用户的本地进程开放，官方更新可能改变页面结构，不能保证所有 Codex 版本兼容。
+## 启动遇到问题
 
-`session.json` 和操作结果中的 `startup` 标记实际路径：`direct` 为使用已保存配置直接启动，`attached` 为接入已有 CDP 窗口，`restarted` 为普通窗口必要的首次接入；`restarted` 布尔值同时记录本次是否重启。
+- 提示找不到 Codex 配置时，先用原来的图标打开 Codex，再次运行启用文件。同时使用多个配置时，请先关掉其他配置的窗口。
+- 启用或恢复失败时，弹窗会给出日志位置。日志保存在 `%LOCALAPPDATA%\ClosureCodexTheme`。需要查看详细过程时，在完整包最外层运行以下命令之一。
 
-`palette.cjs` 从保留的深色主题文件生成页面变量，覆盖基础表面、文字、强调色、差异颜色和字体；仅在主题启用期间生效。原有导入设置与持久化账号配置均不覆盖，关闭后恢复原有外观。如果之前已手动导入过本配色，它仍是恢复后的原设置。
+```powershell
+.\tools\Enable-Codex-Theme.cmd --debug
+.\tools\Restore-Codex-Appearance.cmd --debug
+```
 
-`%LOCALAPPDATA%\ClosureCodexTheme\injector-state.json` 中，`installed: true` 表示样式脚本已注入，`shellReady: true` 才表示已绑定顶部菜单栏和工作区。尚未出现主界面时等待，不显示验证线。请求日志和注入器日志在同目录。遇到浏览器退出时注入器结束，不跟随端口复用连接其他程序。
+## 开发与预览
 
-0.6.0 已删除早期独立实例启动器与指定进程的重启脚本，统一使用根目录主题入口。旧开发实例的数据不自动删除，避免影响已有登录和会话；仅凭目录名不能判断它是否可清理。
+`palette.cjs` 读取深色配色，`decoration.css` 绘制顶栏网格、侧栏、项目文件夹、代码块和输入框装饰。主题通过 Codex 的本机调试连接加载，刷新或新开窗口后会重新应用。[接入方式参考 Codex Dream Skin](https://github.com/Fei-Away/Codex-Dream-Skin/tree/6fc42df48a6a5365011f55cc349e20c038e56d1d)
 
-源码开发预览移至 `tools/decoration-preview/Preview.cmd`，可切换装饰开关。界面是评审用样例，不连接账号或发送聊天；该工具不随正式安装包分发。
-
-`decoration.css` 仅维护深色配色，负责紫蓝网格菜单栏、洋红分隔线、侧栏细线、背景渐变，以及 CRT 扫描线和暗角。菜单栏与工作区装饰绘制在已有元素的背景中，CRT 使用页面内固定伪元素合成，跟随页面重绘；不创建独立覆盖窗口，不修改布局尺寸，不拦截鼠标输入。启用期间自动使用深色，撤销时恢复原页面外观；系统强制颜色模式下关闭 CRT。
-
-`decoration.mjs` 提供挂载、开关和撤销，调用方必须传入已核实的顶栏、工作区与侧栏元素，不依赖打包后的随机类名：
+在源码中双击 `tools/decoration-preview/Preview.cmd` 可打开独立样例。需要在自己的页面中使用装饰时，将实际的顶栏、工作区和侧栏元素传给 `mountDecoration`。
 
 ```js
 import { mountDecoration } from './decoration.mjs'
@@ -31,14 +33,4 @@ decoration.setEnabled(false)
 decoration.dispose()
 ```
 
-接入参考 [Codex Dream Skin](https://github.com/Fei-Away/Codex-Dream-Skin/tree/6fc42df48a6a5365011f55cc349e20c038e56d1d) 的本机 CDP 注入方式。Windows 菜单栏通过 `application-menu-trigger-*` 定位到 `data-app-shell-frame` 的直接子菜单行，不能把 `header[data-app-shell-titlebar]` 聊天标签行误当菜单栏。其他窗口样式才回退到标题栏属性；工作区与侧栏使用 `data-app-shell-main-surface`、`.app-shell-left-panel`。跳过不活动页面；页面刷新、新窗口和 SPA 元素替换后自动挂载，撤销时恢复原属性与样式。注入器按内容版本更新当前页面与刷新脚本，修改样式不必重新启动 Codex。
-
-菜单栏、工作区及侧栏按元素增量绑定，设置页的 `data-settings-panel` 也可作为工作表面。路由切换或工作区暂时不存在时不销毁文档级控制器，配色和 CRT 持续生效；结构选择器在新的菜单行插入后立即绘制，微任务观察器在绘制前补齐元素绑定。侧栏使用实色背景并覆盖官方导航透明规则，`palette.cjs` 同时补齐次级表面与侧栏背景变量。后台切换检查逐帧验证工作区间隙和整个菜单行替换时没有外观重置。
-
-最左侧竖向应用菜单通过稳定属性 `[data-app-navigation-rail]` 定位，右侧绘制洋红分隔线。顶栏、竖向菜单及转角共用 `--closure-menu-paint`：网格与两向渐变以页面视口为共同坐标，通过 CSS 背景的 fixed 附着绘制，渐变覆盖范围取应用菜单高度及导航宽度变量，避免各自从零开始而出现接缝或网格错位。侧栏伪元素按标题栏间距及导航宽度变量向上补齐左上角间隙，不移动按钮、不拦截输入。顶部洋红横线用背景层绘制，从竖向菜单右缘开始，左上角交界处不绘制横线；没有竖向菜单时保留完整横线。仅修改现有导航背景，不插入覆盖元素或改变尺寸；菜单重建后直接由 CSS 生效，撤销主题即恢复原背景。聊天列表的深色背景保持独立。
-
-2026-11-24 验证：官方版本 `26.1117.4957.0` 的独立 headless 实例已进入登录页，生产脚本注入、刷新重注入、撤销及退出端口清理通过。经用户授权，原窗口使用原有数据目录和包身份重启，原账号与聊天界面已恢复；修正后装饰位于页面 y=0、高 36 CSS 像素的完整菜单行，聊天标签行保持原样，CRT 扫描线与暗角已在当前页面生效。窗口拖动、最大化及跨屏仍待实际验收。已安装版本限制 `--run-app`，但实测允许本方案的 CDP 入口。
-
-后台验收脚本：`tests/decoration-preview.cjs` 验证深色配色、尺寸和原有挂载器；`tests/decoration-cdp.cjs` 使用隐藏的 app 协议页面验证生产注入、配色、SPA、重载与撤销，均使用随附 Electron 运行。报告分别位于 `work/decoration-preview`、`work/decoration-cdp`。
-
-一键入口另经 `tests/theme-entry.test.cjs` 验证首次未打开时不启动、已保存目录冷启动、已有窗口直连、目录失效、失败恢复和实例隔离；`tests/theme-entry-official.cjs` 在临时配置的官方 headless 实例中验证首次普通窗口重启一次、注入、重复启用、完全退出后的单次直接启动和恢复普通启动，报告在 `work/theme-entry-official/report.json`。随包 Electron 运行入口、当前已登录页面的配色和菜单栏、桌面及开始菜单快捷方式也已验证。其他用户环境和未来版本仍需兼容反馈。
+`tests/decoration-preview.cjs` 检查样例的开关和恢复，`tests/decoration-cdp.cjs` 检查主题在页面刷新、切换和关闭后的表现。启动流程由 `tests/theme-entry.test.cjs` 和 `tests/theme-entry-official.cjs` 检查。[源码构建与测试](../../docs/USAGE.md#从源码构建与验证)

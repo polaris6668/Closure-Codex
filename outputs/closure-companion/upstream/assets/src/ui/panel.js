@@ -60,7 +60,15 @@ export function createPanel(deps) {
     }
     function syncRuntime(value) {
       for (const [key, input] of Object.entries(runtimeControls)) input.checked = value[key] === true
-      runtimeStatus.textContent = value.startupError || ''
+      const states = Object.entries(value.integrations || {}).filter(([host]) => value[host === 'workbuddy' ? 'workbuddyLinked' : host + 'Linked'])
+        .map(([host, entry]) => {
+          const name = { codex: 'Codex', dsh: 'DSH', workbuddy: 'WorkBuddy' }[host]
+          return name + (entry.status === 'connected' ? '：已连接' : {
+            codex: '：等待 Codex 连接', dsh: '：等待宿主插件连接', workbuddy: '：等待连接，请使用联动或主题启动入口',
+          }[host])
+        })
+      runtimeStatus.textContent = [value.startupError, ...states].filter(Boolean).join('\n')
+      runtimeStatus.style.whiteSpace = 'pre-line'
     }
     async function refreshRuntime() {
       if (!deps.getRuntimeSettings) return
@@ -77,7 +85,8 @@ export function createPanel(deps) {
       }
     }
     if (deps.setRuntimeSetting) {
-      for (const [key, label] of [['codexLinked', 'Codex 联动'], ['showOutsideCodex', '在桌面和其他软件中显示'], ['startAtLogin', '开机自启']]) {
+      for (const [key, label] of [['codexLinked', 'Codex 联动'], ['dshLinked', 'DSH 联动'], ['workbuddyLinked', 'WorkBuddy 联动'], ['showOutsideCodex', '在桌面和其他软件中显示'], ['startAtLogin', '开机自启']]) {
+        if (deps.macOS && key === 'workbuddyLinked') continue
         const settingRow = row(label)
         const checkbox = document.createElement('input')
         checkbox.type = 'checkbox'
@@ -387,31 +396,10 @@ export function createPanel(deps) {
       heading.style.cursor = 'pointer'
       notifications.appendChild(heading)
 
-      const quotaRow = row('自动额度提醒')
-      const options = document.createElement('span')
-      options.style.cssText = 'display:inline-flex;gap:4px'
-      for (const [minutes, label] of [[0, '关闭'], [1, '每分钟'], [5, '每五分钟']]) {
-        const button = document.createElement('button')
-        button.type = 'button'
-        button.textContent = label
-        button.dataset.minutes = String(minutes)
-        button.style.cssText = 'padding:3px 6px;border:1px solid #545969;border-radius:6px;color:inherit;font:inherit;cursor:pointer'
-        button.addEventListener('click', () => {
-          settings.quotaReminderMinutes = minutes
-          saveSettings(true)
-          syncQuotaOptions()
-        })
-        options.appendChild(button)
-      }
-      function syncQuotaOptions() {
-        for (const button of options.children) {
-          const selected = Number(button.dataset.minutes) === settings.quotaReminderMinutes
-          button.setAttribute('aria-pressed', String(selected))
-          button.style.background = selected ? '#525ca9' : '#303442'
-        }
-      }
-      syncQuotaOptions()
-      quotaRow.appendChild(options)
+      const quotaRow = row('账户余额')
+      const hint = document.createElement('span')
+      hint.textContent = deps.macOS ? '中键点击桌宠，或点「查看用量」' : '中键点击桌宠查看'
+      quotaRow.appendChild(hint)
       notifications.appendChild(quotaRow)
 
       {

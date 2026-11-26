@@ -30,8 +30,8 @@ function watchWindowHelper(args, report, onLost) {
   }
 }
 
-function followMacCodex(report, onLost) {
-  return watchWindowHelper([], ({ visible, x, y, width, height }) => {
+function followMacCodex(report, onLost, hosts) {
+  return watchWindowHelper(hosts, ({ visible, x, y, width, height }) => {
     report(visible && [x, y, width, height].every(Number.isFinite) ? { x, y, width, height } : null)
   }, onLost)
 }

@@ -1,0 +1,463 @@
+/* All colour and decoration rules are owned by the reversible theme controller. */
+html[data-closure-workbuddy-theme="on"],
+html[data-closure-workbuddy-theme="on"] body,
+html[data-closure-workbuddy-theme="on"] .cr-theme {
+  --wb-color-bg-primary-default:#0a0b16 !important;
+  --wb-bg-primary:#0a0b16 !important;
+  --wb-home-bg-primary:#0a0b16 !important;
+  --wb-bg-content:#0a0b16 !important;
+  --wb-sidebar-bg:#0a0b16 !important;
+  --cb-bg-primary:#0a0b16 !important;
+  --cb-bg-primary-default:#0a0b16 !important;
+  --cb-sidebar-bg:#0a0b16 !important;
+  --cb-sidebar-background:#0a0b16 !important;
+  --vscode-editor-background:#0a0b16 !important;
+  --vscode-sideBar-background:#0a0b16 !important;
+  --vscode-titleBar-activeBackground:#0a0b16 !important;
+  --vscode-titleBar-inactiveBackground:#0a0b16 !important;
+  --wb-color-bg-secondary-default:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-secondary:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-tertiary:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-card:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-elevated:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-input-inset:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-home-bg-secondary:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-home-input-slot-bg:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-modal:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-popover:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-tooltip:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-popover-picker:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-color-bg-card-default:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-recommend-prompt-bg:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-input-slot-gradient:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cb-bg-secondary:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cb-bg-tertiary:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cb-bg-card:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cb-bg-elevated:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cb-bg-surface:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cb-input-background:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cb-input-area-container-secondary:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --vscode-input-background:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --vscode-menu-background:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --vscode-dropdown-background:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --vscode-editorWidget-background:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --vscode-editorHoverWidget-background:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --vscode-panel-background:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --vscode-notifications-background:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --wb-bg-card-strong:color-mix(in srgb, #0a0b16, #eef0ff 10%) !important;
+  --wb-bg-overlay-elevated:color-mix(in srgb, #0a0b16, #eef0ff 10%) !important;
+  --wb-bg-inset-strong:color-mix(in srgb, #0a0b16, #eef0ff 10%) !important;
+  --wb-color-bg-card-hover:color-mix(in srgb, #0a0b16, #eef0ff 10%) !important;
+  --wb-bg-card-hover:color-mix(in srgb, #0a0b16, #eef0ff 10%) !important;
+  --wb-bg-active-hover:color-mix(in srgb, #0a0b16, #eef0ff 10%) !important;
+  --cb-bg-surface-active:color-mix(in srgb, #0a0b16, #eef0ff 10%) !important;
+  --vscode-list-activeSelectionBackground:color-mix(in srgb, #0a0b16, #eef0ff 10%) !important;
+  --wb-color-bg-primary-hover:rgb(238 240 255 / 8%) !important;
+  --wb-color-bg-primary-active:rgb(238 240 255 / 8%) !important;
+  --wb-color-bg-secondary-hover-active:rgb(238 240 255 / 8%) !important;
+  --wb-bg-hover:rgb(238 240 255 / 8%) !important;
+  --wb-bg-hover-light:rgb(238 240 255 / 8%) !important;
+  --wb-bg-hover-subtle:rgb(238 240 255 / 8%) !important;
+  --wb-todo-menu-bg-hover:rgb(238 240 255 / 8%) !important;
+  --wb-home-composer-chip-bg-hover:rgb(238 240 255 / 8%) !important;
+  --wb-bg-pill-hover:rgb(238 240 255 / 8%) !important;
+  --cb-bg-primary-hover:rgb(238 240 255 / 8%) !important;
+  --cb-bg-primary-active:rgb(238 240 255 / 8%) !important;
+  --cb-sidebar-surface-hover:rgb(238 240 255 / 8%) !important;
+  --cb-sidebar-item-hover-background:rgb(238 240 255 / 8%) !important;
+  --cb-panel-bg-hover:rgb(238 240 255 / 8%) !important;
+  --cb-bg-surface-hover:rgb(238 240 255 / 8%) !important;
+  --cb-input-hover-bg:rgb(238 240 255 / 8%) !important;
+  --vscode-list-hoverBackground:rgb(238 240 255 / 8%) !important;
+  --vscode-toolbar-hoverBackground:rgb(238 240 255 / 8%) !important;
+  --wb-bg-hover-strong:rgb(238 240 255 / 14%) !important;
+  --wb-bg-active:rgb(238 240 255 / 14%) !important;
+  --wb-bg-item-selected:rgb(238 240 255 / 14%) !important;
+  --wb-bg-row-selected:rgb(238 240 255 / 14%) !important;
+  --wb-todo-menu-bg-active:rgb(238 240 255 / 14%) !important;
+  --wb-control-selected-bg:rgb(238 240 255 / 14%) !important;
+  --wb-bg-pill-active:rgb(238 240 255 / 14%) !important;
+  --cb-sidebar-active:rgb(238 240 255 / 14%) !important;
+  --vscode-menu-selectionBackground:rgb(238 240 255 / 14%) !important;
+  --wb-color-text-primary:#eef0ff !important;
+  --wb-color-text-solid:#eef0ff !important;
+  --wb-text-strong:#eef0ff !important;
+  --wb-text-white:#eef0ff !important;
+  --wb-text-on-inverse:#eef0ff !important;
+  --wb-todo-menu-text-default:#eef0ff !important;
+  --wb-todo-menu-text-heading:#eef0ff !important;
+  --wb-input-color-text:#eef0ff !important;
+  --wb-input-color-icon:#eef0ff !important;
+  --cb-text-primary:#eef0ff !important;
+  --cb-text-solid:#eef0ff !important;
+  --cb-text-primary-strong:#eef0ff !important;
+  --cb-input-foreground:#eef0ff !important;
+  --cb-sidebar-text:#eef0ff !important;
+  --vscode-foreground:#eef0ff !important;
+  --vscode-editor-foreground:#eef0ff !important;
+  --vscode-input-foreground:#eef0ff !important;
+  --vscode-menu-foreground:#eef0ff !important;
+  --vscode-titleBar-activeForeground:#eef0ff !important;
+  --vscode-titleBar-inactiveForeground:#eef0ff !important;
+  --vscode-sideBar-foreground:#eef0ff !important;
+  --cb-vscode-titleBar-activeForeground:#eef0ff !important;
+  --cb-vscode-titleBar-inactiveForeground:#eef0ff !important;
+  --wb-color-text-secondary:rgb(238 240 255 / 76%) !important;
+  --wb-color-text-secondary-solid:rgb(238 240 255 / 76%) !important;
+  --wb-text-medium:rgb(238 240 255 / 76%) !important;
+  --wb-text-connector:rgb(238 240 255 / 76%) !important;
+  --wb-input-color-icon-hover:rgb(238 240 255 / 76%) !important;
+  --wb-todo-menu-text-view-more:rgb(238 240 255 / 76%) !important;
+  --cb-text-secondary:rgb(238 240 255 / 76%) !important;
+  --cb-text-secondary-strong:rgb(238 240 255 / 76%) !important;
+  --cb-sidebar-text-secondary:rgb(238 240 255 / 76%) !important;
+  --vscode-descriptionForeground:rgb(238 240 255 / 76%) !important;
+  --vscode-icon-foreground:rgb(238 240 255 / 76%) !important;
+  --wb-color-text-tertiary:rgb(238 240 255 / 55%) !important;
+  --wb-color-text-placeholder:rgb(238 240 255 / 55%) !important;
+  --wb-color-text-hint:rgb(238 240 255 / 55%) !important;
+  --wb-text-weak:rgb(238 240 255 / 55%) !important;
+  --wb-text-muted:rgb(238 240 255 / 55%) !important;
+  --wb-text-placeholder-soft:rgb(238 240 255 / 55%) !important;
+  --wb-input-color-placeholder:rgb(238 240 255 / 55%) !important;
+  --wb-textarea-color-placeholder:rgb(238 240 255 / 55%) !important;
+  --cb-text-tertiary:rgb(238 240 255 / 55%) !important;
+  --cb-text-quaternary:rgb(238 240 255 / 55%) !important;
+  --cb-text-placeholder:rgb(238 240 255 / 55%) !important;
+  --cb-text-muted:rgb(238 240 255 / 55%) !important;
+  --cb-input-placeholder:rgb(238 240 255 / 55%) !important;
+  --cb-sidebar-text-muted:rgb(238 240 255 / 55%) !important;
+  --vscode-input-placeholderForeground:rgb(238 240 255 / 55%) !important;
+  --wb-color-text-disabled:rgb(238 240 255 / 30%) !important;
+  --wb-text-disable:rgb(238 240 255 / 30%) !important;
+  --wb-input-color-text-disabled:rgb(238 240 255 / 30%) !important;
+  --wb-input-color-icon-disabled:rgb(238 240 255 / 30%) !important;
+  --cb-text-disabled:rgb(238 240 255 / 30%) !important;
+  --vscode-disabledForeground:rgb(238 240 255 / 30%) !important;
+  --wb-color-border-primary:rgb(238 240 255 / 14%) !important;
+  --wb-color-border-secondary:rgb(238 240 255 / 14%) !important;
+  --wb-color-border-tertiary:rgb(238 240 255 / 14%) !important;
+  --wb-border-default:rgb(238 240 255 / 14%) !important;
+  --wb-border-weak:rgb(238 240 255 / 14%) !important;
+  --wb-border-subtle:rgb(238 240 255 / 14%) !important;
+  --wb-border-faint:rgb(238 240 255 / 14%) !important;
+  --wb-border-card:rgb(238 240 255 / 14%) !important;
+  --wb-border-card-static:rgb(238 240 255 / 14%) !important;
+  --wb-border-control:rgb(238 240 255 / 14%) !important;
+  --wb-border-teams:rgb(238 240 255 / 14%) !important;
+  --wb-sidebar-border:rgb(238 240 255 / 14%) !important;
+  --wb-border-input:rgb(238 240 255 / 14%) !important;
+  --wb-recommend-prompt-border:rgb(238 240 255 / 14%) !important;
+  --wb-border-popover:rgb(238 240 255 / 14%) !important;
+  --wb-input-border-color:rgb(238 240 255 / 14%) !important;
+  --cb-border:rgb(238 240 255 / 14%) !important;
+  --cb-border-default:rgb(238 240 255 / 14%) !important;
+  --cb-border-subtle:rgb(238 240 255 / 14%) !important;
+  --cb-border-secondary:rgb(238 240 255 / 14%) !important;
+  --cb-input-border-color:rgb(238 240 255 / 14%) !important;
+  --vscode-panel-border:rgb(238 240 255 / 14%) !important;
+  --vscode-editorWidget-border:rgb(238 240 255 / 14%) !important;
+  --vscode-menu-border:rgb(238 240 255 / 14%) !important;
+  --vscode-input-border:rgb(238 240 255 / 14%) !important;
+  --wb-border-strong:rgb(238 240 255 / 22%) !important;
+  --wb-border-hover:rgb(238 240 255 / 22%) !important;
+  --wb-input-border-color-hover:rgb(238 240 255 / 22%) !important;
+  --cb-border-strong:rgb(238 240 255 / 22%) !important;
+  --cb-border-bright:rgb(238 240 255 / 22%) !important;
+  --wb-color-accent-brand:#ff3ea5 !important;
+  --wb-color-border-focus:#ff3ea5 !important;
+  --wb-border-focus:#ff3ea5 !important;
+  --wb-border-selected:#ff3ea5 !important;
+  --wb-border-action:#ff3ea5 !important;
+  --wb-color-text-brand-default:#ff3ea5 !important;
+  --wb-color-text-brand-hover:#ff3ea5 !important;
+  --wb-color-text-brand-focus:#ff3ea5 !important;
+  --wb-color-text-brand-active:#ff3ea5 !important;
+  --wb-color-text-link-default:#ff3ea5 !important;
+  --wb-color-text-link-hover:#ff3ea5 !important;
+  --wb-brand-primary:#ff3ea5 !important;
+  --wb-brand-accent:#ff3ea5 !important;
+  --wb-brand-bright:#ff3ea5 !important;
+  --wb-text-link:#ff3ea5 !important;
+  --wb-text-link-brand:#ff3ea5 !important;
+  --wb-text-link-default:#ff3ea5 !important;
+  --wb-text-action:#ff3ea5 !important;
+  --wb-input-brand-caret-color:#ff3ea5 !important;
+  --wb-input-border-color-focus:#ff3ea5 !important;
+  --cb-accent:#ff3ea5 !important;
+  --cb-text-link:#ff3ea5 !important;
+  --cb-text-link-hover:#ff3ea5 !important;
+  --cb-input-active-border:#ff3ea5 !important;
+  --cb-input-focus-border-color:#ff3ea5 !important;
+  --vscode-focusBorder:#ff3ea5 !important;
+  --vscode-textLink-foreground:#ff3ea5 !important;
+  --vscode-textLink-activeForeground:#ff3ea5 !important;
+  --vscode-button-background:#ff3ea5 !important;
+  --vscode-progressBar-background:#ff3ea5 !important;
+  --vscode-list-highlightForeground:#ff3ea5 !important;
+  --wb-text-on-primary:#0a0b16 !important;
+  --wb-text-inverse:#0a0b16 !important;
+  --wb-bg-inverse:#0a0b16 !important;
+  --cb-input-button-foreground:#0a0b16 !important;
+  --vscode-button-foreground:#0a0b16 !important;
+  --wb-brand-primary-deep:color-mix(in srgb, #0a0b16, #ff3ea5 80%) !important;
+  --cb-accent-hover:color-mix(in srgb, #0a0b16, #ff3ea5 80%) !important;
+  --vscode-button-hoverBackground:color-mix(in srgb, #0a0b16, #ff3ea5 80%) !important;
+  --wb-brand-primary-subtle:color-mix(in srgb, #0a0b16, #ff3ea5 25%) !important;
+  --wb-brand-accent-bg:color-mix(in srgb, #0a0b16, #ff3ea5 25%) !important;
+  --wb-brand-soft:color-mix(in srgb, #0a0b16, #ff3ea5 25%) !important;
+  --wb-bg-focus-soft:color-mix(in srgb, #0a0b16, #ff3ea5 25%) !important;
+  --wb-input-brand-selection-bg:color-mix(in srgb, #0a0b16, #ff3ea5 25%) !important;
+  --vscode-editor-selectionBackground:color-mix(in srgb, #0a0b16, #ff3ea5 25%) !important;
+  --wb-color-text-success-default:#35e0d0 !important;
+  --wb-color-text-success-hover:#35e0d0 !important;
+  --wb-color-text-success-active:#35e0d0 !important;
+  --wb-text-success:#35e0d0 !important;
+  --wb-status-success:#35e0d0 !important;
+  --vscode-gitDecoration-addedResourceForeground:#35e0d0 !important;
+  --vscode-editorGutter-addedBackground:#35e0d0 !important;
+  --wb-color-text-error-default:#ff2e63 !important;
+  --wb-color-text-error-hover:#ff2e63 !important;
+  --wb-color-text-error-active:#ff2e63 !important;
+  --wb-status-error:#ff2e63 !important;
+  --wb-text-danger:#ff2e63 !important;
+  --cb-text-error-active:#ff2e63 !important;
+  --vscode-errorForeground:#ff2e63 !important;
+  --vscode-gitDecoration-deletedResourceForeground:#ff2e63 !important;
+  --vscode-editorGutter-deletedBackground:#ff2e63 !important;
+  --wb-bg-success-soft:color-mix(in srgb, #0a0b16, #35e0d0 12%) !important;
+  --wb-bg-success-soft-dark:color-mix(in srgb, #0a0b16, #35e0d0 12%) !important;
+  --vscode-diffEditor-insertedTextBackground:color-mix(in srgb, #0a0b16, #35e0d0 12%) !important;
+  --wb-bg-error-soft:color-mix(in srgb, #0a0b16, #ff2e63 12%) !important;
+  --wb-bg-error-subtle:color-mix(in srgb, #0a0b16, #ff2e63 12%) !important;
+  --wb-bg-error-hover:color-mix(in srgb, #0a0b16, #ff2e63 12%) !important;
+  --vscode-diffEditor-removedTextBackground:color-mix(in srgb, #0a0b16, #ff2e63 12%) !important;
+  --wb-accent-purple:#a678f0 !important;
+  --wb-accent-violet:#a678f0 !important;
+  --wb-accent-purple-light:#a678f0 !important;
+  --vscode-gitDecoration-modifiedResourceForeground:#a678f0 !important;
+  --wb-bg-purple:color-mix(in srgb, #0a0b16, #a678f0 12%) !important;
+  --wb-bg-purple-soft:color-mix(in srgb, #0a0b16, #a678f0 12%) !important;
+  --wb-bg-purple-light:color-mix(in srgb, #0a0b16, #a678f0 12%) !important;
+  --wb-scrollbar-thumb-bg:rgb(238 240 255 / 17%) !important;
+  --wb-textarea-scrollbar-thumb-color:rgb(238 240 255 / 17%) !important;
+  --vscode-scrollbarSlider-background:rgb(238 240 255 / 17%) !important;
+  --vscode-scrollbarSlider-hoverBackground:rgb(238 240 255 / 32%) !important;
+  --vscode-scrollbarSlider-activeBackground:rgb(238 240 255 / 32%) !important;
+  --wb-color-mask-color:rgb(8 8 16 / 65%) !important;
+  --wb-bg-overlay:rgb(8 8 16 / 65%) !important;
+  --wb-bg-overlay-on-dark:rgb(8 8 16 / 65%) !important;
+  --cr-internal-bg-canvas:#0a0b16 !important;
+  --cr-internal-bg-primary:#0a0b16 !important;
+  --cr-internal-bg-primary-default:#0a0b16 !important;
+  --cr-internal-message-list-bottom-mask-bg:#0a0b16 !important;
+  --cr-internal-bg-secondary:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-bg-tertiary:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-bg-neutral-inset:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-bg-elevated:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-bg-code:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-bg-code-header:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-bg-input-inset:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-bg-input-slot-gradient:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-popover-bg:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-tooltip-bg:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-bg-code-inline:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-tag-bg:color-mix(in srgb, #0a0b16, #eef0ff 6%) !important;
+  --cr-internal-text-primary:#eef0ff !important;
+  --cr-internal-icon-primary:#eef0ff !important;
+  --cr-internal-tooltip-text-color:#eef0ff !important;
+  --cr-internal-scene-tag-fg:#eef0ff !important;
+  --cr-internal-text-secondary:rgb(238 240 255 / 76%) !important;
+  --cr-internal-text-tertiary:rgb(238 240 255 / 55%) !important;
+  --cr-internal-text-surplus:rgb(238 240 255 / 55%) !important;
+  --cr-internal-text-placeholder-from:rgb(238 240 255 / 55%) !important;
+  --cr-internal-text-placeholder-to:rgb(238 240 255 / 55%) !important;
+  --cr-internal-text-disabled:rgb(238 240 255 / 30%) !important;
+  --cr-internal-icon-disabled:rgb(238 240 255 / 30%) !important;
+  --cr-internal-border-default:rgb(238 240 255 / 14%) !important;
+  --cr-internal-border-primary:rgb(238 240 255 / 14%) !important;
+  --cr-internal-border-faint:rgb(238 240 255 / 14%) !important;
+  --cr-internal-popover-border:rgb(238 240 255 / 14%) !important;
+  --cr-internal-popover-divider:rgb(238 240 255 / 14%) !important;
+  --cr-internal-border-elevated:rgb(238 240 255 / 14%) !important;
+  --cr-internal-input-shell-border-from:rgb(238 240 255 / 14%) !important;
+  --cr-internal-input-shell-border-to:rgb(238 240 255 / 14%) !important;
+  --cr-internal-brand-primary:#ff3ea5 !important;
+  --cr-internal-accent:#ff3ea5 !important;
+  --cr-internal-accent-secondary:#ff3ea5 !important;
+  --cr-internal-focus-border:#ff3ea5 !important;
+  --cr-internal-send-button-fill:#ff3ea5 !important;
+  --cr-internal-text-link:#ff3ea5 !important;
+  --cr-internal-text-link-hover:#ff3ea5 !important;
+  --cr-internal-color-on-accent:#0a0b16 !important;
+  --cr-internal-control-selected-fg:#0a0b16 !important;
+  --cr-internal-bg-hover:rgb(238 240 255 / 8%) !important;
+  --cr-internal-item-hover-bg:rgb(238 240 255 / 8%) !important;
+  --cr-internal-item-self-hover-bg:rgb(238 240 255 / 8%) !important;
+  --cr-internal-scene-tag-bg:rgb(238 240 255 / 8%) !important;
+  --cr-internal-chip-hover-bg:rgb(238 240 255 / 8%) !important;
+  --cr-internal-item-selected-bg:rgb(238 240 255 / 14%) !important;
+  --cr-internal-control-selected-bg:rgb(238 240 255 / 14%) !important;
+  --cr-internal-scene-tag-bg-hover:rgb(238 240 255 / 14%) !important;
+  --cr-internal-scene-tag-bg-active:rgb(238 240 255 / 14%) !important;
+  --cr-internal-text-success:#35e0d0 !important;
+  --cr-internal-status-success:#35e0d0 !important;
+  --cr-internal-text-error:#ff2e63 !important;
+  --cr-internal-text-error-default:#ff2e63 !important;
+  --cr-internal-status-error:#ff2e63 !important;
+  --cr-internal-permission-danger:#ff2e63 !important;
+  --cr-internal-scrollbar-thumb:rgb(238 240 255 / 17%) !important;
+  --cr-internal-scrollbar-thumb-hover:rgb(238 240 255 / 32%) !important;
+  --cr-internal-send-button-fill-disabled:color-mix(in srgb, #0a0b16, #ff3ea5 30%) !important;
+  --vscode-font-family:"Cascadia Mono", "DengXian", "等线", "Microsoft YaHei UI", "Microsoft YaHei", ui-monospace, monospace !important;
+  --cb-font-family:"Cascadia Mono", "DengXian", "等线", "Microsoft YaHei UI", "Microsoft YaHei", ui-monospace, monospace !important;
+  --wb-font-family:"Cascadia Mono", "DengXian", "等线", "Microsoft YaHei UI", "Microsoft YaHei", ui-monospace, monospace !important;
+  --cr-internal-font-family:"Cascadia Mono", "DengXian", "等线", "Microsoft YaHei UI", "Microsoft YaHei", ui-monospace, monospace !important;
+  --cr-font-family:"Cascadia Mono", "DengXian", "等线", "Microsoft YaHei UI", "Microsoft YaHei", ui-monospace, monospace !important;
+  --vscode-editor-font-family:"Cascadia Mono", Consolas, "DengXian", "等线", "Microsoft YaHei UI", monospace !important;
+  --font-mono:"Cascadia Mono", Consolas, "DengXian", "等线", "Microsoft YaHei UI", monospace !important;
+  --cr-internal-font-mono:"Cascadia Mono", Consolas, "DengXian", "等线", "Microsoft YaHei UI", monospace !important;
+  --cr-font-mono:"Cascadia Mono", Consolas, "DengXian", "等线", "Microsoft YaHei UI", monospace !important;
+  --closure-top:#3a3fd8;
+  --closure-mid:#2b30b8;
+  --closure-bottom:#1d2180;
+  --closure-line:#ff3ea5;
+  --closure-sidebar:#101222;
+  --closure-current:var(--closure-line);
+  --closure-composer-focus:#998ab9;
+  --closure-code-header: #282838;
+  --closure-code-body: #181924;
+  --closure-code-divider: #524b65;
+  --closure-code-label: #c5c4d6;
+  --closure-folder-closed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23c7cad9' d='M1 3h5v1h1v1h8v9H1z'/%3E%3Cpath fill='%2361677e' d='M2 4h3v1h1v1h8v7H2z'/%3E%3C/svg%3E");
+  --closure-folder-open: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23c7cad9' d='M1 2h5v1h1v1h7v9H1z'/%3E%3Cpath fill='%2361677e' d='M2 3h3v1h1v1h7v7H2z'/%3E%3Cpath fill='%23f0eef8' d='M4 5h8v4H4z'/%3E%3Cpath fill='%23c7cad9' d='M3 7h13v2h-1v2h-1v3H1v-3h1V8h1z'/%3E%3Cpath fill='%2361677e' d='M4 8h11v1h-1v2h-1v2H2v-2h1V9h1z'/%3E%3C/svg%3E");
+  --closure-grid:rgb(238 240 255 / 5%);
+  --closure-menu-paint:
+    repeating-linear-gradient(90deg,var(--closure-grid) 0 1px,transparent 1px 8px),
+    repeating-linear-gradient(0deg,var(--closure-grid) 0 1px,transparent 1px 8px),
+    linear-gradient(180deg,var(--closure-top),var(--closure-mid) 45%,transparent),
+    linear-gradient(90deg,var(--closure-top),var(--closure-mid) 45%,transparent);
+  --closure-ambient:radial-gradient(ellipse at 82% 4%,rgb(126 14 228 / 7%),transparent 60%),
+    radial-gradient(ellipse at 50% 115%,rgb(66 58 216 / 13%),transparent 70%);
+  color-scheme:dark;
+}
+html[data-closure-workbuddy-theme="on"] body {
+  background:#0a0b16;
+  color:#eef0ff;
+  font-family:var(--vscode-font-family) !important;
+}
+html[data-closure-workbuddy-theme="on"] :is(button,input,textarea,select,[contenteditable="true"]) {
+  font-family:inherit !important;
+}
+html[data-closure-workbuddy-theme="on"] #workbuddy-menubar-container {
+  background-color:var(--closure-bottom) !important;
+  background-image:var(--closure-menu-paint) !important;
+  background-size:auto,auto,100% 100%,var(--closure-workbuddy-menu-width,280px) 100% !important;
+  background-position:0 0 !important;
+  background-repeat:repeat,repeat,no-repeat,no-repeat !important;
+  color:#eef0ff !important;
+  box-shadow:inset 0 -1px 0 var(--closure-line),inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+html[data-closure-workbuddy-theme="on"] :is([data-view-id="sidebar"],.conversation-list--hover-peek) {
+  background:var(--closure-sidebar) !important;
+  --wb-sidebar-bg:transparent;
+  --wb-sidebar-mask-end:transparent;
+  --wb-todo-menu-bg-hover:rgb(238 240 255 / 10%);
+  --wb-todo-menu-bg-active:rgb(238 240 255 / 15%);
+  box-shadow:inset -1px 0 0 rgb(123 124 171 / 22%);
+}
+html[data-closure-workbuddy-theme="on"] :is(.conversation-list,.conversation-list-header,.conversation-list-footer,.conversation-list-scroll,.conversation-list-content) {
+  background-color:transparent !important;
+  border-right-color:transparent;
+}
+html[data-closure-workbuddy-theme="on"] :is(#workbuddy-window-controls-container,#workbuddy-window-controls,.workbuddy-window-controls) {
+  background:transparent !important;
+  color:#eef0ff !important;
+}
+html[data-closure-workbuddy-theme="on"] :is(.teams-container,.teams-grid-scroll-content,.layout-window-frame__body,.layout-window-frame__outlet,.teams-main-content,.wb-home-route) {
+  background-color:#0a0b16 !important;
+  background-image:var(--closure-ambient) !important;
+  background-repeat:no-repeat;
+}
+html[data-closure-workbuddy-theme="on"] :is(.cr-input-container,.cr-input-box__main) {
+  background:var(--wb-bg-card) !important;
+  color:var(--wb-text-strong) !important;
+  border-color:var(--wb-border-default) !important;
+}
+@media screen and (forced-colors: none) {
+  html[data-closure-workbuddy-theme="on"] :is([data-view-id="sidebar"], .conversation-list--hover-peek) {
+    & .collapsible-section-header:has(+ .collapsible-section-motion--expanded) {
+      --closure-folder-icon: var(--closure-folder-open);
+    }
+    /* WorkBuddy's folder glyph has one path. Automated workspaces use a clock. */
+    & :is(.flat-subfolder-row:is([data-flat-row-id*="-sub-workdir:"], [data-flat-row-id*="-sub-space:"]), .conversation-section--local-workspace)
+      .collapsible-section-icon > svg.wb-icon:has(> path:only-child),
+    & .flat-subfolder-row[data-flat-row-id*="-sub-project:"] .collapsible-section-icon > svg.wb-icon {
+      background: var(--closure-folder-icon, var(--closure-folder-closed)) center / contain no-repeat;
+      & > :is(path, g) { visibility: hidden; }
+    }
+  }
+  html[data-closure-workbuddy-theme="on"] .cr-code-like-box:has(> .cr-code-like-box__content > .cr-code-block__pre) {
+    background-color: var(--closure-code-body);
+
+    & > .cr-code-like-box__header {
+      background-color: var(--closure-code-header);
+      box-shadow: inset 0 -1px var(--closure-code-divider);
+    }
+    & .cr-code-block__language { color: var(--closure-code-label); }
+    & .cr-code-block__copy-button:enabled:is(:hover, :focus-visible) {
+      background-color: var(--closure-code-divider);
+      color: #eef0ff;
+    }
+  }
+  html[data-closure-workbuddy-theme="on"] .cb-markdown .cb-markdown-pre-container {
+    --cb-markdown-code-block-bg: var(--closure-code-body);
+    --cb-markdown-code-block-header-bg: var(--closure-code-header);
+    --cb-markdown-code-block-title-fg: var(--closure-code-label);
+
+    & > .cb-markdown-pre__header {
+      box-shadow: inset 0 -1px var(--closure-code-divider);
+    }
+    /* The legacy action list puts Copy first, followed by optional file actions. */
+    & .cb-markdown-pre__header [role="button"][tabindex="0"]:first-child:not(.cb-markdown-pre__title):is(:hover, :focus-visible) {
+      background-color: var(--closure-code-divider);
+      color: #eef0ff;
+    }
+  }
+}
+@media (forced-colors: none) {
+  html[data-closure-workbuddy-theme="on"] :is([data-view-id="sidebar"], .conversation-list--hover-peek)
+    .cb-agent-card[data-conversation-id][data-selected="true"] {
+    /* The native selected and hovered cards use an important background shorthand. */
+    background-image: linear-gradient(var(--closure-current), var(--closure-current)) !important;
+    background-size: 2px 16px !important;
+    background-position: left 4px center !important;
+    background-repeat: no-repeat !important;
+  }
+  html[data-closure-workbuddy-theme="on"] .cr-input-box__main .cr-input-container:has([contenteditable="true"]:focus) {
+    border-color: var(--closure-composer-focus) !important;
+  }
+  /* The native SVG paints a solid disc with a transparent arrow cut out of it. */
+  html[data-closure-workbuddy-theme="on"] .cr-send-button:enabled:not([aria-disabled="true"], .cr-send-button--stop, .cr-send-button--sending, .cr-send-button--custom) .cr-send-button__icon > svg {
+    background-color: var(--closure-sidebar);
+    border-radius: 50%;
+  }
+}
+html[data-closure-workbuddy-theme="on"] .settings-window-root {background-color:#0a0b16 !important;}
+html[data-closure-workbuddy-theme="on"] :is(body.settings-window,.settings-window-chrome) {
+  background:#0a0b16 !important;
+}
+html[data-closure-workbuddy-theme="on"]::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:2147483645;
+  pointer-events:none;
+  user-select:none;
+  background-image:repeating-linear-gradient(180deg,rgb(255 255 255 / 1.12%) 0 1px,rgb(0 0 0 / 0.88%) 1px 3px),
+    radial-gradient(ellipse 130% 110% at 50% 0%,transparent 62%,rgb(8 8 16 / 26%) 100%);
+}
+@media (forced-colors:active) {
+  html[data-closure-workbuddy-theme="on"]::before {content:none;}
+  html[data-closure-workbuddy-theme="on"] :is(#workbuddy-menubar-container,[data-view-id="sidebar"],.teams-container,.layout-window-frame__outlet,.teams-main-content) {background-image:none !important;}
+}

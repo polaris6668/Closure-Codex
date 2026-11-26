@@ -71,7 +71,7 @@ public static class ClosureLifecycleWindows {
             if (owner != processId) return true;
             var title = new StringBuilder(64);
             GetWindowText(window, title, title.Capacity);
-            if (title.ToString() != expected) return true;
+            if (title.ToString() != expected && (crt || title.ToString() != "\u53ef\u9732\u5e0c\u5c14 \u00b7 \u684c\u5ba0")) return true;
             sent = crt ? PostThreadMessage(thread, 0x0012, IntPtr.Zero, IntPtr.Zero) : PostMessage(window, 0x0010, IntPtr.Zero, IntPtr.Zero);
             return false;
         }, IntPtr.Zero);

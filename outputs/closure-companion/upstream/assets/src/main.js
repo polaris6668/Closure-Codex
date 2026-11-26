@@ -22,7 +22,7 @@
 
 import {
   PREFIX, MODEL, CANVAS_W, FRAME, FRAMING, DRAG_THRESHOLD_SQ, SIZE_MIN, SIZE_MAX,
-  INTERACT_SPLIT, INTERACT_MIX, STARTUP_DELAY, STARTUP_GAP, log, warn,
+  INTERACT_SPLIT, INTERACT_MIX, STARTUP_DELAY, log, warn,
 } from './core/env.js'
 import { settings, saveSettings } from './core/settings.js'
 import { normalizeSettings } from './shared/protocol.js'
@@ -35,7 +35,7 @@ import { createBubble } from './ui/bubble.js'
 import { createSticker } from './ui/sticker.js'
 import { createDrag } from './input/drag.js'
 import { createDirector } from './anim/director.js'
-import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
+import { createState } from './io/state.js'
 
 (function () {
   if (window.__dshClosurePet) return
@@ -390,7 +390,7 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
   function loadHostConfig() { if (stateApi) stateApi.loadHostConfig() }
 
   // ————————————————————— 开屏时序 —————————————————————
-  // 常量（STARTUP_DELAY / STARTUP_GAP）定义在文件顶部的可调参数区。
+  // STARTUP_DELAY 定义在文件顶部的可调参数区。
   //
   // 语义：延迟到点后**强制插播**——不管当下是否在思考/输出、是否有覆盖动画，
   // 都先演一遍开屏（峰谷 → 可选余额），演完再回到原本的工作层/基础层。
@@ -418,27 +418,13 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
     startupPending = null
     if (!p || !pet.state) return
     if (p.companion) {
-      var snapshot = stateApi && stateApi.getState()
-      p.low = !!snapshot?.closureCompanion?.quota.some(function (quotaWindow) { return quotaWindow.remaining <= 10 })
-      if (!p.low) bubbleApi.showDialogue('startup')
+      p.low = false
+      bubbleApi.showDialogue('startup')
     }
     // 强制插播：清掉 Talk 锁与挂起的覆盖动画，立刻把开屏演出来
     director.resetLocks()
     pet.segment = null
-    playOverlay(p.peak ? 'Sad_Begin' : 'Special_A', function () {
-      if (!p.low) { syncAnimation(true); return }
-      // 空档 STARTUP_GAP：保持上一段姿势不动（syncAnimation 会被 startupHold 挡住），
-      // 避免轮询把基础层切上来，导致"难过→点头→再难过"的抖动。
-      startupHold = true
-      setTimeout(function () {
-        startupHold = false
-        if (layers.overlay) return // 空档里已经有别的覆盖动画了，不打断
-        playOverlay('Sad_Begin', undefined, function () {
-          showBubble(p.companion ? LOW_QUOTA_NOTICE : '博士！预算快见底了\n该批经费啦！')
-          playSound('fail')
-        })
-      }, STARTUP_GAP)
-    })
+    playOverlay(p.peak ? 'Sad_Begin' : 'Special_A', function () { syncAnimation(true) })
   }
 
   // ————————————————————— 启动 —————————————————————
@@ -503,8 +489,9 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
   stateApi = createState({
     macOS,
     layers: layers, playOverlay: playOverlay, syncAnimation: syncAnimation,
-    showBubble: showBubble, showQuota: bubbleApi.showQuota, refreshBubble: refreshBubble, playSound: playSound,
+    showBubble: showBubble, hideDialogue: bubbleApi.hideDialogue, refreshBubble: refreshBubble, playSound: playSound,
     showDialogue: bubbleApi.showDialogue, playQueuedDialogue: bubbleApi.playQueuedDialogue,
+    resetActivity: () => { director.resetLocks(); pet.segment = null },
     scheduleStartup: scheduleStartup,
     settings: settings, saveSettings: saveSettings,
     layout: layout, repositionForAnchor: repositionForAnchor,
@@ -516,6 +503,7 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
     settle: settle, followBubble: bubbleApi.follow, playSegment: playSegment,
     showBubble: () => { if (!macOS || !stateApi.isPlayingTaskVoice()) bubbleApi.showInteraction() },
     showValleySticker: showValleySticker,
+    showQuota: () => !macOS || !stateApi.isPlayingTaskVoice() ? bubbleApi.showQuota() : false,
     openPanel: openPanel, closePanel: closePanel, panelIsOpen: panelIsOpen, insidePanel: insidePanel,
     stopPlayingVoice: () => {
       if (!macOS || !audio.getVoiceState()) return false
@@ -657,7 +645,7 @@ import { createState, LOW_QUOTA_NOTICE } from './io/state.js'
         playSound: playSound,
         runStartup: runStartup,
         cancelStartup: cancelStartup,
-        get startup() { return { pending: !!startupPending, delay: STARTUP_DELAY, gap: STARTUP_GAP } },
+        get startup() { return { pending: !!startupPending, delay: STARTUP_DELAY, gap: 0 } },
         setLoop: function (name, from, to) {
           if (from === null || from === undefined) delete LOOP_RANGES[name]
           else LOOP_RANGES[name] = { from: Number(from), to: Number(to) }

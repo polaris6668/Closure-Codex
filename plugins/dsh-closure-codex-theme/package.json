@@ -1,0 +1,28 @@
+{
+  "name": "dsh-closure-codex-theme",
+  "version": "0.1.2",
+  "description": "可露希尔 Codex 深色主题的独立 DSH 移植：紫蓝网格、洋红细线与 CRT 扫描线",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./locale/*": "./locale/*"
+  },
+  "files": ["lib", "locale", "src", "tools", "cordis.patch.yml", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "prepack": "node tools/build.mjs"
+  },
+  "keywords": ["dsh-plugin", "dsh-skin", "codex", "closure", "dark-theme", "crt"],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "inject": ["@deepseek-ai/dsh-client-ui-theme", "@deepseek-ai/dsh-client-ui-layout"]
+    }
+  },
+  "engines": { "dsh": ">=0.2.2-rc.5 <0.3.0" },
+  "license": "MIT"
+}

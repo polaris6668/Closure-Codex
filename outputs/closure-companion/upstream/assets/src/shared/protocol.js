@@ -45,7 +45,7 @@ export const SETTINGS_DEFAULTS = Object.freeze({
   standaloneVoiceQueueMode: 'default',
   standaloneVoiceQueue: Object.freeze([]),
   toolFailureNotice: true,
-  quotaReminderMinutes: 1,
+  quotaReminderMinutes: 0,
 })
 
 export function getVoiceQueues(settings) {
@@ -96,6 +96,7 @@ export function normalizeSettings(raw, base) {
     }))
   }
   if (typeof raw.toolFailureNotice === 'boolean') out.toolFailureNotice = raw.toolFailureNotice
-  if ([0, 1, 5].includes(raw.quotaReminderMinutes)) out.quotaReminderMinutes = raw.quotaReminderMinutes
+  // Older saved reminder intervals migrate to manual middle-button lookup.
+  out.quotaReminderMinutes = 0
   return out
 }

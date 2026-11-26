@@ -1,5 +1,7 @@
-# 深色装饰开发预览
+# 预览 Codex 主题
 
-双击 `Preview.cmd`，使用项目 `work/companion-runtime/electron` 中的运行时显示独立样例页面。它不读取 Codex 账号，也不发送聊天。样式和挂载器引用 `outputs/closure-decoration` 的当前实现，预览文件不随正式安装包分发。
+在源码目录双击 `Preview.cmd`，可在独立样例窗口里切换装饰、对照效果。预览使用 `outputs/closure-decoration` 的当前样式，不需要登录 Codex。此工具供源码开发使用。
 
-后台检查：以 Electron 运行项目根目录的 `tests/decoration-preview.cjs`，窗口保持隐藏，验证尺寸、输入、开关及撤销；结果写入 `work/decoration-preview`。
+如果提示缺少 Electron，可把运行文件放在 `work/companion-runtime/electron`，或将 `CLOSURE_ELECTRON_EXE` 设为 `electron.exe` 的完整路径。
+
+需要自动检查时，在项目根目录用 Electron 运行 `tests/decoration-preview.cjs`。它会在隐藏窗口里检查页面尺寸、输入和装饰开关，报告保存在 `work/decoration-preview`。

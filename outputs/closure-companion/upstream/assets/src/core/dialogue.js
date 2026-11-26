@@ -63,10 +63,10 @@ export const VOICE_SCENES = Object.freeze({
   start: '任务开始',
   working: '任务中',
   completion: '任务完成',
-  startup: '启动 Codex',
+  startup: '启动联动',
   idle: '空闲五分钟',
   toolFailure: '工具调用错误',
-  question: 'Codex 提问',
+  question: '联动软件提问',
   answer: '用户提交回答',
 })
 

@@ -1,4 +1,4 @@
-param([switch] $Probe, [long] $OverlayHandle)
+param([switch] $Probe, [long] $OverlayHandle, [string] $Hosts = 'codex')
 
 $ErrorActionPreference = 'Stop'
 Add-Type -TypeDefinition @'
@@ -73,6 +73,7 @@ $overlay = [IntPtr]$OverlayHandle
 $target = [IntPtr]::Zero
 $last = ''
 $lastForeground = [IntPtr]::Zero
+$allowedHosts = $Hosts.Split(',')
 
 do {
     $active = [ClosureWindow]::GetForegroundWindow()
@@ -82,7 +83,10 @@ do {
         [void][ClosureWindow]::GetWindowThreadProcessId($active, [ref]$owner)
         $target = [IntPtr]::Zero
         $process = if ($owner -ne 0) { Get-Process -Id $owner -ErrorAction SilentlyContinue }
-        if ($process.Path -match '\\OpenAI\.Codex_[^\\]+\\app\\(?:ChatGPT|Codex)\.exe$' -and [ClosureWindow]::IsMainWindow($active)) {
+        $matchesHost = ('codex' -in $allowedHosts -and $process.Path -match '\\OpenAI\.Codex_[^\\]+\\app\\(?:ChatGPT|Codex)\.exe$') -or
+            ('dsh' -in $allowedHosts -and $process.Path -eq (Join-Path $env:LOCALAPPDATA 'Programs/DeepSeek Harness/DeepSeek Harness.exe')) -or
+            ('workbuddy' -in $allowedHosts -and $process.Path -eq (Join-Path $env:LOCALAPPDATA 'Programs/WorkBuddy/WorkBuddy.exe'))
+        if ($matchesHost -and [ClosureWindow]::IsMainWindow($active)) {
             $target = $active
         }
     }
